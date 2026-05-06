@@ -2,6 +2,8 @@
 
 AI 프롬프트 공유·판매 서비스 — Django 4.2 + DRF + JWT + PostgreSQL
 
+[![Django CI](https://github.com/soyoungflow/Promptory/actions/workflows/ci.yml/badge.svg)](https://github.com/soyoungflow/Promptory/actions/workflows/ci.yml)
+
 ---
 
 ## 로컬 실행 방법 (15분 내 실행 가능)
@@ -117,6 +119,18 @@ docker compose run --rm web python manage.py seed_mockup
 # 4) 테스트
 docker compose run --rm web python manage.py test
 ```
+
+### CI (GitHub Actions)
+
+`.github/workflows/ci.yml` 가 `main` push 및 PR에서 자동 실행된다.
+
+- PostgreSQL 서비스 컨테이너(`postgres:15-alpine`) 기동
+- Python 3.11 환경에서 `requirements.txt` 설치
+- `python manage.py check` 실행
+- `python manage.py migrate --noinput` 실행
+- `python manage.py test -v 1` 실행
+
+실패 시 GitHub의 **Actions > Django CI** 탭에서 단계별 로그를 확인하면 된다.
 
 ---
 
