@@ -1,0 +1,210 @@
+/**
+ * prompt-detail.js — 프롬프트 상세 페이지 전용
+ * 프롬프트 로딩, 좋아요/북마크 토글, 댓글 CRUD
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const page      = document.querySelector('.detail-page');
+  const promptId  = page?.dataset.promptId;
+  if (!promptId) return;
+
+  const detailEl  = document.getElementById('prompt-detail');
+  const actionBar = document.getElementById('action-bar');
+  const likeBtn   = document.getElementById('like-btn');
+  const likeCount = document.getElementById('like-count');
+  const bmBtn     = document.getElementById('bookmark-btn');
+  const authorAct = document.getElementById('author-actions');
+  const commentList = document.getElementById('comment-list');
+  const commentForm = document.getElementById('comment-form');
+  const loginPrompt = document.getElementById('comment-login-prompt');
+  const parentInput = document.getElementById('comment-parent-id');
+  const replyInd    = document.getElementById('reply-indicator');
+  const replyToText = document.getElementById('reply-to-text');
+  const cancelReply = document.getElementById('cancel-reply-btn');
+
+  if (!Auth.isLoggedIn()) {
+    if (commentForm) commentForm.style.display = 'none';
+    if (loginPrompt) loginPrompt.style.display = '';
+  }
+
+  // 프롬프트 상세 로딩
+  async function loadPrompt() {
+    try {
+      const { data: p } = await Api.get(`/prompts/${promptId}/`);
+
+      const isAuthor = String(Auth.getUserId()) === String(p.user_id);
+      const editUrl  = `/prompts/${promptId}/edit/`;
+      const filesHtml = (p.files || []).map(f =>
+        `<a class="file-link" href="${Api.safeUrl(f.file)}" target="_blank" rel="noopener">첨부: ${Api.escapeHtml(f.file_name)}</a>`
+      ).join('');
+
+      detailEl.innerHTML = `
+        <div class="detail-header">
+          <div class="detail-meta">
+            <span class="detail-model">${p.ai_model}</span>
+            ${p.is_free
+              ? '<span class="tag tag-free">무료</span>'
+              : `<span class="tag tag-paid">₩${Number(p.price).toLocaleString()}</span>`}
+            <span class="detail-category">${p.category?.name || ''}</span>
+          </div>
+          <h1 class="detail-title">${Api.escapeHtml(p.title)}</h1>
+          <div class="detail-author-row">
+            <span class="avatar">${Api.escapeHtml((p.author || '?').charAt(0).toUpperCase())}</span>
+            <div>
+              <p class="detail-author">by ${Api.escapeHtml(p.author)}</p>
+              <p class="detail-date">${new Date(p.created_at).toLocaleDateString('ko-KR')} · 조회 ${p.view_count}</p>
+            </div>
+          </div>
+          ${p.description ? `<p class="detail-desc">${Api.escapeHtml(p.description)}</p>` : ''}
+        </div>
+        <div class="detail-divider"></div>
+        <div class="prompt-content-box">
+          <div class="content-label">프롬프트 본문</div>
+          <pre class="prompt-content">${Api.escapeHtml(p.content)}</pre>
+          <button class="btn btn-copy" id="copy-btn">복사</button>
+        </div>
+        ${(p.tags||[]).length ? `<div class="detail-tags">${p.tags.map(t=>`<span class="tag">#${Api.escapeHtml(t.name)}</span>`).join('')}</div>` : ''}
+        ${filesHtml ? `<div class="detail-files"><strong>첨부 파일:</strong> ${filesHtml}</div>` : ''}
+      `;
+
+      document.querySelector('#comment-count').textContent = `(${p.comment_count})`;
+
+      // 복사 버튼
+      document.getElementById('copy-btn')?.addEventListener('click', () => {
+        navigator.clipboard.writeText(p.content).then(() => {
+          const btn = document.getElementById('copy-btn');
+          btn.textContent = '복사됨 ✓';
+          setTimeout(() => { btn.textContent = '복사'; }, 2000);
+        });
+      });
+
+      // 액션 바
+      likeCount.textContent = p.like_count;
+      likeBtn.classList.toggle('active', p.is_liked);
+      bmBtn.classList.toggle('active', p.is_bookmarked);
+      actionBar.style.display = 'flex';
+      if (isAuthor) {
+        authorAct.style.display = 'flex';
+        document.getElementById('edit-btn').href = editUrl;
+        document.getElementById('delete-btn')?.addEventListener('click', () => deletePrompt());
+      }
+
+      loadComments();
+    } catch {
+      detailEl.innerHTML = '<div class="error-state">프롬프트를 불러오지 못했습니다.</div>';
+    }
+  }
+
+  // 좋아요 토글
+  likeBtn?.addEventListener('click', async () => {
+    if (!Auth.isLoggedIn()) return (location.href = '/accounts/login/');
+    const { data } = await Api.post(`/prompts/${promptId}/like/`);
+    likeCount.textContent = data.like_count;
+    likeBtn.classList.toggle('active', data.liked);
+  });
+
+  // 북마크 토글
+  bmBtn?.addEventListener('click', async () => {
+    if (!Auth.isLoggedIn()) return (location.href = '/accounts/login/');
+    const { data } = await Api.post(`/prompts/${promptId}/bookmark/`);
+    bmBtn.classList.toggle('active', data.bookmarked);
+    bmBtn.querySelector('.bookmark-icon').textContent = data.bookmarked ? '🔖' : '🔖';
+  });
+
+  // 댓글 목록 로딩
+  async function loadComments() {
+    try {
+      const { data } = await Api.get(`/prompts/${promptId}/comments/`);
+      if (!data.length) {
+        commentList.innerHTML = '<p class="empty-state">첫 댓글을 작성해보세요.</p>';
+        return;
+      }
+      commentList.innerHTML = data.map(renderComment).join('');
+      // 대댓글 버튼 바인딩
+      commentList.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.addEventListener('click', () => setReply(btn.dataset.id, btn.dataset.author));
+      });
+      // 댓글 삭제 버튼
+      commentList.querySelectorAll('.comment-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteComment(btn.dataset.id));
+      });
+    } catch {
+      commentList.innerHTML = '<div class="error-state">댓글을 불러오지 못했습니다.</div>';
+    }
+  }
+
+  function renderComment(c) {
+    const isOwn = Auth.getUserId() !== null && String(Auth.getUserId()) === String(c.user_id);
+    const replies = (c.replies||[]).map(r => `
+      <div class="comment reply-comment">
+        <div class="comment-header">
+          <span class="avatar-sm">${Api.escapeHtml((r.author || '?').charAt(0).toUpperCase())}</span>
+          <span class="comment-author">↳ ${Api.escapeHtml(r.author)}</span>
+          <span class="comment-date">${new Date(r.created_at).toLocaleDateString('ko-KR')}</span>
+        </div>
+        <p class="comment-body">${r.is_deleted ? '<em class="deleted-comment">삭제된 댓글입니다.</em>' : Api.escapeHtml(r.content)}</p>
+      </div>`).join('');
+    return `
+      <div class="comment">
+        <div class="comment-header">
+          <span class="avatar-sm">${Api.escapeHtml((c.author || '?').charAt(0).toUpperCase())}</span>
+          <span class="comment-author">${Api.escapeHtml(c.author)}</span>
+          <span class="comment-date">${new Date(c.created_at).toLocaleDateString('ko-KR')}</span>
+          <div class="comment-actions">
+            ${Auth.isLoggedIn() ? `<button class="btn-text-link reply-btn" data-id="${c.id}" data-author="${Api.escapeHtml(c.author)}">답글</button>` : ''}
+            ${isOwn ? `<button class="btn-text-link comment-delete-btn" data-id="${c.id}">삭제</button>` : ''}
+          </div>
+        </div>
+        <p class="comment-body">${c.is_deleted ? '<em class="deleted-comment">삭제된 댓글입니다.</em>' : Api.escapeHtml(c.content)}</p>
+        ${replies}
+      </div>`;
+  }
+
+  // 대댓글 모드 설정
+  function setReply(parentId, author) {
+    parentInput.value = parentId;
+    replyToText.textContent = `@${author} 에게 답글 중`;
+    replyInd.style.display = 'inline-flex';
+    document.getElementById('comment-content').focus();
+  }
+  cancelReply?.addEventListener('click', () => {
+    parentInput.value = '';
+    replyInd.style.display = 'none';
+  });
+
+  // 댓글 등록
+  commentForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const content  = document.getElementById('comment-content').value.trim();
+    const parentId = parentInput.value || null;
+    if (!content) return;
+
+    const body = { content };
+    if (parentId) body.parent = parentId;
+
+    try {
+      const { res } = await Api.post(`/prompts/${promptId}/comments/`, body);
+      if (res.ok) {
+        document.getElementById('comment-content').value = '';
+        parentInput.value = '';
+        replyInd.style.display = 'none';
+        loadComments();
+      }
+    } catch {}
+  });
+
+  // 댓글 Soft Delete
+  async function deleteComment(id) {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return;
+    await Api.delete(`/comments/${id}/`);
+    loadComments();
+  }
+
+  // 프롬프트 Soft Delete
+  async function deletePrompt() {
+    if (!confirm('프롬프트를 삭제하시겠습니까?')) return;
+    const { res } = await Api.delete(`/prompts/${promptId}/`);
+    if (res.ok) window.location.href = '/';
+  }
+
+  loadPrompt();
+});

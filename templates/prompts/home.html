@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Promptory — AI 프롬프트 공유 플랫폼{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+  <div class="hero-copy">
+    <span class="eyebrow">Promptory</span>
+    <h1>AI 프롬프트를 발견하고,<br>공유하세요.</h1>
+    <p>같은 AI도 어떻게 질문하느냐에 따라 답이 달라집니다.</p>
+    <p>검증된 프롬프트로 AI 활용도를 높이고, 내가 만든 프롬프트로 수익도 만들어 보세요.</p>
+    <div class="hero-actions">
+      <a href="{% url 'prompt-list-page' %}" class="btn btn-primary">탐색하기</a>
+      <a href="{% url 'prompt-create-page' %}" class="btn btn-secondary auth-only" style="display:none;">프롬프트 등록</a>
+    </div>
+  </div>
+  <div class="hero-panel">
+    <div class="hero-card">
+      <span class="tag tag-free">무료</span>
+      <h3>Python 코드 리뷰 어시스턴트</h3>
+      <p>버그 탐지, 성능 개선, 스타일 체크까지 한 번에 확인하는 개발자 필수 프롬프트.</p>
+      <div class="card-tags">
+        <span class="tag">#코딩</span>
+        <span class="tag">#Python</span>
+        <span class="tag">#리뷰</span>
+      </div>
+    </div>
+    <div class="hero-card muted">
+      <span class="tag tag-paid">₩3,000</span>
+      <h3>SEO 블로그 최적화 프롬프트</h3>
+      <p>블로그 글 하나로 검색 유입을 2배 늘린 프롬프트.</p>
+    </div>
+  </div>
+</section>
+
+<section class="home-section">
+  <div class="section-heading">
+    <h2>어떤 프롬프트를 찾고 있나요?</h2>
+    <p>복사해서 붙여넣기만 하면 됩니다. 카테고리, AI 모델, 무료 여부로 빠르게 찾아보세요.</p>
+  </div>
+  <div class="feature-grid">
+    <a href="{% url 'prompt-list-page' %}?ordering=-created_at" class="feature-card">
+      <strong>최신 프롬프트</strong>
+      <span>방금 공유된 프롬프트 탐색</span>
+    </a>
+    <a href="{% url 'prompt-list-page' %}?ordering=-view_count" class="feature-card">
+      <strong>인기 프롬프트</strong>
+      <span>조회수가 높은 프롬프트 확인</span>
+    </a>
+    <a href="{% url 'prompt-list-page' %}?is_free=true" class="feature-card">
+      <strong>무료 프롬프트</strong>
+      <span>바로 사용할 수 있는 무료 자료</span>
+    </a>
+  </div>
+</section>
+{% endblock %}

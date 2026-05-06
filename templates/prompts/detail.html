@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}프롬프트 상세 — Promptory{% endblock %}
+
+{% block content %}
+<!-- prompt_id를 JS에 전달 -->
+<div class="detail-page" data-prompt-id="{{ prompt_id }}">
+  <a href="{% url 'prompt-list-page' %}" class="back-link">← 목록으로</a>
+
+  <!-- 프롬프트 본문 (JS 렌더링) -->
+  <div id="prompt-detail" class="prompt-detail">
+    <div class="loading-spinner">불러오는 중...</div>
+  </div>
+
+  <!-- 좋아요 / 북마크 액션 바 -->
+  <div class="action-bar" id="action-bar" style="display:none;">
+    <button class="btn btn-like" id="like-btn">
+      <span class="like-icon">♥</span>
+      좋아요 <span id="like-count">0</span>
+    </button>
+    <button class="btn btn-bookmark" id="bookmark-btn">
+      <span class="bookmark-icon">🔖</span> 북마크
+    </button>
+    <!-- 작성자 전용 액션 (JS가 조건부 렌더링) -->
+    <div id="author-actions" style="display:none;">
+      <a id="edit-btn" href="#" class="btn btn-secondary">수정</a>
+      <button class="btn btn-danger" id="delete-btn">삭제</button>
+    </div>
+  </div>
+
+  <!-- 댓글 섹션 -->
+  <div class="comment-section">
+    <h3 class="section-title">댓글 <span id="comment-count"></span></h3>
+
+    <form id="comment-form" class="comment-form" novalidate>
+      <textarea id="comment-content" class="comment-input" placeholder="댓글을 입력하세요..." rows="3"></textarea>
+      <input type="hidden" id="comment-parent-id" value="">
+      <div class="comment-form-actions">
+        <span id="reply-indicator" style="display:none;">
+          <span id="reply-to-text"></span>
+          <button type="button" id="cancel-reply-btn" class="btn-text-link">취소</button>
+        </span>
+        <button type="submit" class="btn btn-primary" id="comment-submit-btn">등록</button>
+      </div>
+    </form>
+    <p id="comment-login-prompt" class="auth-prompt" style="display:none;">
+      댓글을 작성하려면 <a href="{% url 'login-page' %}">로그인</a>하세요.
+    </p>
+
+    <!-- 댓글 목록 (JS 렌더링) -->
+    <div id="comment-list" class="comment-list">
+      <div class="loading-spinner">댓글 불러오는 중...</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/prompt-detail.js' %}"></script>
+{% endblock %}

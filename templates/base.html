@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Promptory{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="nav-left">
+      <a href="{% url 'home-page' %}" class="nav-logo">Promptory</a>
+      <div class="nav-links">
+        <a href="{% url 'home-page' %}" class="nav-link {% if request.resolver_match.url_name == 'home-page' %}active{% endif %}">홈</a>
+        <a href="{% url 'prompt-list-page' %}" class="nav-link {% if request.resolver_match.url_name == 'prompt-list-page' %}active{% endif %}">탐색</a>
+        <a href="{% url 'library-page' %}" class="nav-link {% if request.resolver_match.url_name == 'library-page' %}active{% endif %}">보관함</a>
+        <a href="{% url 'prompt-create-page' %}" class="nav-link auth-only {% if request.resolver_match.url_name == 'prompt-create-page' or request.resolver_match.url_name == 'prompt-edit-page' %}active{% endif %}" style="display:none;">등록</a>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <form class="nav-search" action="{% url 'prompt-list-page' %}" method="get">
+        <label for="nav-search-input" class="sr-only">프롬프트 검색</label>
+        <span class="nav-search-icon">⌕</span>
+        <input id="nav-search-input" type="search" name="search" value="{{ request.GET.search|default:'' }}" placeholder="프롬프트 검색...">
+        <span class="nav-search-key">⌘K</span>
+      </form>
+      <span id="nav-auth-area">
+        <!-- JS가 로그인 상태에 따라 동적으로 렌더링 -->
+      </span>
+    </div>
+  </div>
+</nav>
+
+<main class="{% block main_class %}main-container{% endblock %}">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <p>Promptory © 2026 — AI 프롬프트 공유 플랫폼</p>
+</footer>
+
+<!-- 전역 상태 (Django → JS 전달) -->
+<script>
+  window.PROMPTORY = {
+    isAuthenticated: false,
+    userId: null,
+    userEmail: '',
+    apiBase: '/api',
+    csrfToken: '{{ csrf_token }}',
+  };
+</script>
+<script src="{% static 'js/auth.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}프롬프트 탐색 — Promptory{% endblock %}
+{% block main_class %}main-container main-container-wide{% endblock %}
+
+{% block content %}
+<div class="explore-layout">
+  <aside class="sidebar">
+    <div class="sidebar-title">카테고리</div>
+    <div id="category-sidebar" class="sidebar-list">
+      <button class="sidebar-item active" type="button" data-category="">전체 <span>ALL</span></button>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-title">인기 태그</div>
+    <div class="tag-cloud">
+      <span>#글쓰기</span>
+      <span>#코딩</span>
+      <span>#마케팅</span>
+      <span>#번역</span>
+      <span>#이미지</span>
+      <span>#분석</span>
+    </div>
+  </aside>
+
+  <div class="list-page">
+    <div class="explore-header">
+      <div>
+        <span class="eyebrow">Explore</span>
+        <h1>프롬프트 탐색</h1>
+        <p>카테고리와 모델, 가격 조건으로 필요한 프롬프트를 찾아보세요.</p>
+      </div>
+      <div class="view-toggle" aria-label="보기 방식">
+        <button type="button" class="active">Grid</button>
+        <button type="button">List</button>
+      </div>
+    </div>
+
+    <!-- 검색 + 필터 바 -->
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <input type="text" id="search-input" class="search-input" placeholder="프롬프트 검색...">
+        <button class="btn btn-search" id="search-btn">검색</button>
+      </div>
+      <div class="filter-row">
+        <select id="filter-category" class="filter-select sr-only" aria-label="카테고리">
+          <option value="">전체 카테고리</option>
+          <!-- JS가 /api/prompts/categories/ 로 동적 로딩 -->
+        </select>
+        <select id="filter-ai-model" class="filter-select">
+          <option value="">전체 모델</option>
+          <option value="gpt-5-5">GPT-5.5</option>
+          <option value="gpt-5-5-instant">GPT-5.5 Instant</option>
+          <option value="claude-opus-4-7">Claude Opus 4.7</option>
+          <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+          <option value="gemini-3-1-pro">Gemini 3.1 Pro</option>
+          <option value="gemini-3-0-flash">Gemini 3.0 Flash</option>
+          <option value="other">기타</option>
+        </select>
+        <select id="filter-is-free" class="filter-select">
+          <option value="">무료 + 유료</option>
+          <option value="true">무료만</option>
+          <option value="false">유료만</option>
+        </select>
+        <select id="filter-ordering" class="filter-select">
+          <option value="-created_at">최신순</option>
+          <option value="-view_count">조회순</option>
+          <option value="price">가격 낮은순</option>
+          <option value="-price">가격 높은순</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 결과 헤더 -->
+    <div class="list-header">
+      <span id="result-count" class="result-count"></span>
+      <a href="{% url 'prompt-create-page' %}" class="btn btn-primary auth-only" style="display:none;">+ 프롬프트 등록</a>
+    </div>
+
+    <!-- 프롬프트 카드 그리드 (JS 렌더링) -->
+    <div id="prompt-grid" class="prompt-grid">
+      <div class="loading-spinner">불러오는 중...</div>
+    </div>
+
+    <!-- 페이지네이션 (JS 렌더링) -->
+    <div id="pagination" class="pagination"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/prompts.js' %}"></script>
+{% endblock %}

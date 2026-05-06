@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}로그인 — Promptory{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-brand">
+    <a href="{% url 'home-page' %}" class="auth-logo">Promptory</a>
+    <p>AI 프롬프트의 모든 것</p>
+  </div>
+  <div class="auth-card">
+    <h1 class="auth-title">로그인</h1>
+    <p class="auth-sub">계정이 없으신가요? <a href="{% url 'register-page' %}">회원가입</a></p>
+    <div id="login-error" class="alert alert-error" style="display:none;"></div>
+    <form id="login-form" class="auth-form" novalidate>
+      <div class="form-group">
+        <label for="email">이메일</label>
+        <input type="email" id="email" name="email" placeholder="email@example.com" required>
+        <span class="field-error" id="email-error"></span>
+      </div>
+      <div class="form-group">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" name="password" placeholder="비밀번호" required>
+        <span class="field-error" id="password-error"></span>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+        <span class="btn-text">로그인</span>
+        <span class="btn-loading" style="display:none;">처리 중...</span>
+      </button>
+    </form>
+    <div class="visual-only-separator"><span>또는</span></div>
+    <button type="button" class="btn btn-secondary btn-full visual-only">GitHub로 로그인</button>
+    <button type="button" class="btn btn-secondary btn-full visual-only">Google로 로그인</button>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/login.js' %}"></script>{% endblock %}
