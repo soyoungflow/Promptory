@@ -99,7 +99,7 @@
 
 | 항목 | 권장 | 근거 |
 |------|:----:|------|
-| 관리자 로그인 | [ ] | **코드는 준비됨.** DB에 `is_staff`/`is_superuser` 계정이 없으면 로그인 불가 → 발표 전 `createsuperuser` 필수. |
+| 관리자 로그인 | [ ] | **코드는 준비됨.** 현재 점검 시점에는 Postgres 미기동으로 실확인 불가. 발표 전 DB 기동 + `createsuperuser`로 최종 확인 필요. |
 | 핵심 데이터 관리 | [x] | `prompts/admin.py`: Prompt/Category/Tag/PromptFile, Soft Delete 액션·인라인 등. `interaction`, `accounts` admin 등록됨. |
 | CRUD 확인 | [x] | Admin에서 생성·조회·수정 가능; Prompt 삭제는 운영 정책상 Soft Delete 권장(README 안내). |
 
@@ -122,7 +122,7 @@
 
 **기타 (발표에서 구체화)**
 
-- [ ] 태그 — 코드상 Tag + M2M으로 **태그 기능 구현됨**. 위 표에 없어서 여기 명시.
+- [x] 태그 — 코드상 Tag + M2M으로 구현됨 (`prompts.models.Tag`, 검색 필터 연동).
 
 ---
 
@@ -167,7 +167,7 @@
 | README만으로 실행 | [x] | venv, `pip install`, `.env.example` 복사, migrate, runserver. |
 | 실행 순서 문서화 | [x] | README 순서. |
 | 환경변수 문서화 | [x] | `.env.example` + README. |
-| 발표 시 500 없음 | [ ] | 발표 직전 **로컬/배포 환경에서 재확인.** |
+| 발표 시 500 없음 | [ ] | 현재 점검 시점에는 Postgres 미기동 상태여서 재확인 필요. DB 기동 후 핵심 시나리오 재실행 권장. |
 | 최종 점검 완료 | [ ] | 팀 실시. |
 
 ---
@@ -190,6 +190,10 @@
 | Soft Delete | [x] | Prompt·Comment; User 모델에도 `is_deleted` 필드. |
 | 권한 고도화 | [x] | 객체 권한 + 인증 조합; 블랙리스트 로그아웃. |
 | PostgreSQL 전환 | [x] | 로컬 `local.py`·운영 `production.py` 모두 PostgreSQL. Postgres 실행 후 마이그레이션·시연 확인. |
+| Docker image build | [x] | `Dockerfile` + `docker-compose.yml` 반영, 로컬 빌드 확인됨. |
+| docker-compose 통합 실행 | [x] | `web + db` Compose 구성 및 스모크 실행 이력 있음. |
+| CI에서 Docker build 검증 | [x] | `.github/workflows/ci.yml`에 `docker-build` 잡 추가. |
+| CI에서 compose 스모크 검증 | [x] | `.github/workflows/ci.yml`에 `compose-smoke` 잡 추가. |
 | 예외/에러 응답 표준화 | [ ] | DRF 기본 JSON 에러; 전역 커스텀 핸들러는 README에 명시 없음. |
 
 ---
@@ -199,10 +203,10 @@
 | 항목 | 권장 |
 |------|:----:|
 | 발표 자료 열림 | [ ] |
-| 시연용·관리자 계정 준비 | [ ] |
+| 시연용·관리자 계정 준비 | [ ] (Postgres 기동 후 생성/로그인 재확인) |
 | 테스트 데이터 | [ ] (예: `seed_mockup` 등) |
 | 핵심 기능 1회 재점검 | [ ] |
-| 네트워크·서버·실행 환경 | [ ] |
+| 네트워크·서버·실행 환경 | [ ] (특히 PostgreSQL/Compose 실행 상태 확인) |
 
 ---
 

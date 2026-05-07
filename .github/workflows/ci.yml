@@ -26,7 +26,7 @@ jobs:
 
     env:
       DJANGO_SETTINGS_MODULE: config.settings.local
-      SECRET_KEY: ci-secret-key
+      SECRET_KEY: ci-secret-key-for-promptory-tests-32bytes-minimum
       DEBUG: "True"
       ALLOWED_HOSTS: localhost,127.0.0.1
       DB_NAME: promptory_db

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{% if is_edit %}프롬프트 수정{% else %}프롬프트 등록{% endif %} — Promptory{% endblock %}
+
+{% block content %}
+<div class="form-page" data-prompt-id="{{ prompt_id|default:'' }}" data-mode="{{ mode }}">
+  <div class="form-page-header">
+    <span class="eyebrow">Create</span>
+    <h1>{% if is_edit %}프롬프트 수정{% else %}프롬프트 등록{% endif %}</h1>
+    <p>제목, 카테고리, 본문, 태그를 입력해 커뮤니티에 공유하세요.</p>
+  </div>
+  <div class="form-card">
+    <div id="form-error" class="alert alert-error" style="display:none;"></div>
+
+    <form id="prompt-form" class="prompt-form" novalidate>
+      <div class="form-group">
+        <label for="title">제목 <span class="required">*</span></label>
+        <input type="text" id="title" name="title" placeholder="프롬프트 제목을 입력하세요" required maxlength="200">
+        <span class="field-error" id="title-error"></span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="category">카테고리 <span class="required">*</span></label>
+          <select id="category" name="category" required>
+            <option value="">카테고리를 선택하세요</option>
+            <!-- JS가 /api/prompts/categories/ 로 동적 로딩 -->
+          </select>
+          <span class="field-error" id="category-error"></span>
+        </div>
+        <div class="form-group">
+          <label for="ai-model">AI 모델 <span class="required">*</span></label>
+          <select id="ai-model" name="ai_model" required>
+            <option value="">모델을 선택하세요</option>
+            <!-- JS: 카테고리별 필터 + prompts.models AI_MODEL_CHOICES 와 동기화 -->
+          </select>
+          <span class="field-error" id="ai-model-error"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">설명</label>
+        <textarea id="description" name="description" rows="2" placeholder="프롬프트 간단 설명"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="content">프롬프트 본문 <span class="required">*</span></label>
+        <textarea id="content" name="content" rows="10" placeholder="실제 프롬프트 내용을 입력하세요" required></textarea>
+        <span class="field-error" id="content-error"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="tags">태그</label>
+        <input type="text" id="tag-input" placeholder="태그 입력 후 Enter">
+        <div id="tag-list" class="tag-list"></div>
+        <input type="hidden" id="tag-ids" name="tag_ids">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group form-check">
+          <label class="check-label">
+            <input type="checkbox" id="is-free" name="is_free" checked>
+            무료 공개
+          </label>
+        </div>
+        <div class="form-group" id="price-group" style="display:none;">
+          <label for="price">가격 (원)</label>
+          <input type="number" id="price" name="price" min="0" step="100" value="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>첨부 파일 <span class="hint">(jpg, png, pdf, txt, md, zip / 최대 10MB)</span></label>
+        <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.pdf,.txt,.md,.zip" multiple>
+        <div id="file-preview" class="file-preview"></div>
+      </div>
+
+      <div class="form-actions">
+        <a href="javascript:history.back()" class="btn btn-secondary">취소</a>
+        <button type="button" class="btn btn-secondary visual-only">임시저장</button>
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <span class="btn-text">{% if is_edit %}수정 완료{% else %}등록하기{% endif %}</span>
+          <span class="btn-loading" style="display:none;">처리 중...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/prompt-form.js' %}"></script>
+{% endblock %}
