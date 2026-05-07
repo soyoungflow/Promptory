@@ -84,8 +84,8 @@ jobs:
         run: |
           for i in {1..30}; do
             DB_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' promptory-db-1 2>/dev/null || true)
-            WEB_STATUS=$(docker inspect --format='{{.State.Status}}' promptory-web-1 2>/dev/null || true)
-            if [ "$DB_STATUS" = "healthy" ] && [ "$WEB_STATUS" = "running" ]; then
+            WEB_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' promptory-web-1 2>/dev/null || true)
+            if [ "$DB_STATUS" = "healthy" ] && [ "$WEB_STATUS" = "healthy" ]; then
               echo "Compose services are ready."
               exit 0
             fi
@@ -97,7 +97,7 @@ jobs:
           exit 1
 
       - name: Smoke check HTTP endpoint
-        run: curl -fsS http://127.0.0.1:8000/
+        run: curl -fsS --retry 5 --retry-connrefused --retry-delay 2 http://127.0.0.1:8000/
 
       - name: Show compose status
         if: always()
