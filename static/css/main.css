@@ -111,6 +111,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-hover); b
 .sidebar-divider { height: 1px; background: var(--border); margin: 16px 0; }
 .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag-cloud span { padding: 3px 10px; border: 1px solid var(--border); background: var(--bg); border-radius: 20px; font-size: 12px; color: var(--text-muted); }
+.tag-cloud .popular-tag.active { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 .list-page { flex: 1; padding: 24px 32px; }
 .explore-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
 .explore-header h1 { font-size: 20px; letter-spacing: -0.02em; }
@@ -195,6 +196,35 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-hover); b
 .prompt-content-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; margin-bottom: 18px; }
 .content-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
 .prompt-content { font-family: var(--mono); font-size: 13px; color: var(--text); white-space: pre-wrap; word-break: break-word; line-height: 1.7; }
+.prompt-content-box.is-paid-preview .prompt-content {
+  max-height: calc(1.7em * 3);
+  overflow: hidden;
+  filter: blur(2px);
+  user-select: none;
+}
+.paid-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 92px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.93) 50%, rgba(255,255,255,1) 100%);
+}
+.paid-overlay-msg {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
 .action-bar { display: flex; align-items: center; gap: 8px; margin: 12px 0; padding: 0; }
 #author-actions { margin-left: auto; display: flex; gap: 8px; }
 

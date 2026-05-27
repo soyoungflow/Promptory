@@ -34,7 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const aiModelEl     = document.getElementById('filter-ai-model');
   const isFreeEl      = document.getElementById('filter-is-free');
   const orderingEl    = document.getElementById('filter-ordering');
+  const popularTagCloud = document.getElementById('popular-tag-cloud');
   const initialParams = new URLSearchParams(window.location.search);
+  let selectedTagSlug = initialParams.get('tag') || '';
 
   if (initialParams.get('search')) searchInput.value = initialParams.get('search');
   if (initialParams.get('ai_model')) aiModelEl.value = initialParams.get('ai_model');
@@ -76,6 +78,36 @@ document.addEventListener('DOMContentLoaded', () => {
         aiModelEl.value = '';
       }
     } catch {}
+  }
+
+  async function loadPopularTags() {
+    if (!popularTagCloud) return;
+    try {
+      const { data } = await Api.get('/prompts/tags/popular/?limit=10');
+      const tags = data || [];
+      if (!tags.length) {
+        popularTagCloud.innerHTML = '<span>태그가 없습니다</span>';
+        return;
+      }
+      popularTagCloud.innerHTML = tags.map((t) => (
+        `<span class="popular-tag" data-tag="${Api.escapeHtml(t.slug)}">#${Api.escapeHtml(t.name)} (${t.prompt_count})</span>`
+      )).join('');
+      popularTagCloud.querySelectorAll('.popular-tag').forEach((el) => {
+        if (el.dataset.tag === selectedTagSlug) el.classList.add('active');
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          const next = el.dataset.tag;
+          selectedTagSlug = selectedTagSlug === next ? '' : next;
+          popularTagCloud.querySelectorAll('.popular-tag').forEach((tagEl) => {
+            tagEl.classList.toggle('active', tagEl.dataset.tag === selectedTagSlug);
+          });
+          currentPage = 1;
+          fetchPrompts();
+        });
+      });
+    } catch {
+      popularTagCloud.innerHTML = '<span>태그를 불러오지 못했습니다</span>';
+    }
   }
 
   function getCategoryNameById(categoryId) {
@@ -135,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (aiModel)  params.set('ai_model', aiModel);
     if (isFree)   params.set('is_free', isFree);
     if (ordering) params.set('ordering', ordering);
+    if (selectedTagSlug) params.set('tag', selectedTagSlug);
     params.set('page', currentPage);
     return params;
   }
@@ -163,13 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 페이지네이션 렌더링
-  function renderPagination(count, currentPage) {
+  function renderPagination(count, activePage) {
     const totalPages = Math.ceil(count / 12);
     if (totalPages <= 1) { pagination.innerHTML = ''; return; }
 
     let html = '';
     for (let i = 1; i <= totalPages; i++) {
-      html += `<button class="page-btn${i === currentPage ? ' active' : ''}" data-page="${i}">${i}</button>`;
+      html += `<button class="page-btn${i === activePage ? ' active' : ''}" data-page="${i}">${i}</button>`;
     }
     pagination.innerHTML = html;
     pagination.querySelectorAll('.page-btn').forEach(btn => {
@@ -224,4 +257,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 초기 로드
   loadCategories().then(fetchPrompts);
+  loadPopularTags();
 });

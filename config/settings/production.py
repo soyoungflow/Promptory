@@ -12,9 +12,11 @@
 from .base import *
 from decouple import config
 
+from ._hosts import build_allowed_hosts
+
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+ALLOWED_HOSTS = build_allowed_hosts(config('ALLOWED_HOSTS', default=''))
 
 # ── PostgreSQL ──
 DATABASES = {

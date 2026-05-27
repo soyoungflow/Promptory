@@ -8,12 +8,14 @@ Docker Compose 로컬 실행용.
 """
 from decouple import config
 
+from ._hosts import build_allowed_hosts
 from .production import *
 
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-_raw = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,web,0.0.0.0')
-ALLOWED_HOSTS = [h.strip() for h in _raw.split(',') if h.strip()]
+ALLOWED_HOSTS = build_allowed_hosts(
+    config('ALLOWED_HOSTS', default='localhost,127.0.0.1,web,0.0.0.0')
+)
 
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False

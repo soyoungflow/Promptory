@@ -10,9 +10,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
+    prompt_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Tag
-        fields = ('id', 'name', 'slug')
+        fields = ('id', 'name', 'slug', 'prompt_count')
 
 
 class PromptFileSerializer(serializers.ModelSerializer):

@@ -37,6 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
         `<a class="file-link" href="${Api.safeUrl(f.file)}" target="_blank" rel="noopener">첨부: ${Api.escapeHtml(f.file_name)}</a>`
       ).join('');
 
+      const isPaid = !p.is_free;
+      const previewContent = isPaid ? getPaidPreviewContent(p.content, 3) : Api.escapeHtml(p.content);
+
       detailEl.innerHTML = `
         <div class="detail-header">
           <div class="detail-meta">
@@ -57,10 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
           ${p.description ? `<p class="detail-desc">${Api.escapeHtml(p.description)}</p>` : ''}
         </div>
         <div class="detail-divider"></div>
-        <div class="prompt-content-box">
+        <div class="prompt-content-box ${isPaid ? 'is-paid-preview' : ''}">
           <div class="content-label">프롬프트 본문</div>
-          <pre class="prompt-content">${Api.escapeHtml(p.content)}</pre>
-          <button class="btn btn-copy" id="copy-btn">복사</button>
+          <pre class="prompt-content">${previewContent}</pre>
+          ${isPaid ? `
+            <div class="paid-overlay">
+              <p class="paid-overlay-msg">결제 후에 보기 가능합니다.</p>
+            </div>
+          ` : ''}
+          ${isPaid ? '' : '<button class="btn btn-copy" id="copy-btn">복사</button>'}
         </div>
         ${(p.tags||[]).length ? `<div class="detail-tags">${p.tags.map(t=>`<span class="tag">#${Api.escapeHtml(t.name)}</span>`).join('')}</div>` : ''}
         ${filesHtml ? `<div class="detail-files"><strong>첨부 파일:</strong> ${filesHtml}</div>` : ''}
@@ -92,6 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {
       detailEl.innerHTML = '<div class="error-state">프롬프트를 불러오지 못했습니다.</div>';
     }
+  }
+
+  function getPaidPreviewContent(content, lines = 3) {
+    const raw = String(content || '');
+    const preview = raw.split('\n').slice(0, lines).join('\n');
+    return Api.escapeHtml(preview);
   }
 
   // 좋아요 토글

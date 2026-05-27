@@ -8,10 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('prompt-form');
   if (!page || !form) return;
 
-  if (!Auth.isLoggedIn()) {
-    window.location.href = '/accounts/login/';
-    return;
-  }
+  const loggedIn = Auth.isLoggedIn();
 
   const promptId = page.dataset.promptId;
   const isEdit = page.dataset.mode === 'edit' && !!promptId;
@@ -189,6 +186,12 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTopError();
     clearFieldErrors();
     setSubmitting(true);
+
+    if (!loggedIn) {
+      setSubmitting(false);
+      showTopError('로그인이 필요합니다.');
+      return;
+    }
 
     const payload = {
       title: titleEl.value.trim(),

@@ -114,6 +114,23 @@ class PromptAdmin(admin.ModelAdmin):
     # ── 액션 ──
     actions = ['action_soft_delete', 'action_restore']
 
+    def get_actions(self, request):
+        """
+        Django/admin 커스터마이징이나 상속 상태에 따라
+        동일 액션이 중복 표시되는 경우를 방지한다.
+        """
+        actions = super().get_actions(request)
+        deduped = {}
+        seen = set()
+        for key, value in actions.items():
+            func, name, desc = value
+            token = (name, desc)
+            if token in seen:
+                continue
+            seen.add(token)
+            deduped[key] = value
+        return deduped
+
     def action_soft_delete(self, request, queryset):
         count = 0
         for obj in queryset.filter(is_deleted=False):

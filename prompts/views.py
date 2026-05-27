@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Count, Q
 
 from .models import Category, Tag, Prompt, PromptFile
 from .serializers import (
@@ -23,7 +24,9 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """태그 목록 / 상세"""
-    queryset = Tag.objects.all()
+    queryset = Tag.objects.annotate(
+        prompt_count=Count('prompts', filter=Q(prompts__is_deleted=False), distinct=True)
+    )
     serializer_class = TagSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
@@ -35,6 +38,18 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
         tag = self.get_object()
         qs = Prompt.objects.filter(tags=tag, is_deleted=False)
         serializer = PromptListSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='popular')
+    def popular(self, request):
+        """GET /api/tags/popular/ — 사용량 기준 인기 태그"""
+        try:
+            limit = int(request.query_params.get('limit', 10))
+        except (TypeError, ValueError):
+            limit = 10
+        limit = max(1, min(limit, 30))
+        qs = self.get_queryset().filter(prompt_count__gt=0).order_by('-prompt_count', 'name')[:limit]
+        serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
 
