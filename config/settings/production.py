@@ -15,6 +15,8 @@ from decouple import config
 from ._hosts import build_allowed_hosts
 
 DEBUG = config('DEBUG', default=False, cast=bool)
+if config('VERCEL', default='0') == '1':
+    DEBUG = False
 
 ALLOWED_HOSTS = build_allowed_hosts(config('ALLOWED_HOSTS', default=''))
 
