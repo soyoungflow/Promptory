@@ -17,10 +17,12 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    'django_prometheus',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
+    'channels',
 ]
 
 LOCAL_APPS = [
@@ -28,11 +30,14 @@ LOCAL_APPS = [
     'prompts',
     'interaction',
     'ai_gateway',
+    'tasks',
+    'monitoring',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -40,9 +45,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
+ASGI_APPLICATION = 'config.asgi.application'
 
 TEMPLATES = [
     {
@@ -112,4 +119,28 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# Phase 4: Celery + Redis
+REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379/0')
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default=REDIS_URL)
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default=REDIS_URL)
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Phase 4: AI server (FastAPI)
+FASTAPI_URL = config('FASTAPI_URL', default='http://127.0.0.1:8001')
+LLM_PROVIDER = config('LLM_PROVIDER', default='mock')
+HF_MODEL_NAME = config('HF_MODEL_NAME', default='LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct')
+HF_EMBEDDING_MODEL = config('HF_EMBEDDING_MODEL', default='jhgan/ko-sroberta-multitask')
+
+# Phase 4: Channels (WebSocket)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {'hosts': [REDIS_URL]},
+    },
 }

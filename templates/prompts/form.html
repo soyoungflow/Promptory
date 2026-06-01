@@ -19,6 +19,15 @@
         <span class="field-error" id="title-error"></span>
       </div>
 
+      <div class="form-group">
+        <label for="prompt-type">프롬프트 유형</label>
+        <select id="prompt-type" name="prompt_type">
+          <option value="single_prompt">단일 프롬프트</option>
+          <option value="agent_recipe">에이전트 레시피</option>
+          <option value="mcp_package" disabled>MCP 패키지 (준비 중)</option>
+        </select>
+      </div>
+
       <div class="form-row">
         <div class="form-group">
           <label for="category">카테고리 <span class="required">*</span></label>

@@ -28,6 +28,26 @@
     </div>
   </div>
 
+  <!-- Phase 4: 에이전트 변환 (작성자 전용, 인라인) -->
+  <div class="agent-transform-section" id="agent-section" style="display:none;">
+    <h3 class="section-title">에이전트 변환</h3>
+    <button type="button" class="btn btn-primary" id="transform-btn">에이전트로 변환하기</button>
+    <div id="transform-status" class="transform-status" style="display:none;">
+      <div class="loading-spinner" style="margin:12px 0;"></div>
+      <p>변환 중… <span id="elapsed">0</span>초</p>
+      <p class="text-muted" id="transform-ws-hint" style="font-size:13px;"></p>
+    </div>
+    <div id="transform-result" class="transform-result" style="display:none;">
+      <p>신뢰도: <strong id="confidence">—</strong></p>
+      <ol id="agent-steps" class="agent-steps"></ol>
+      <div id="similar-prompts" class="similar-prompts" style="display:none;">
+        <h4>유사 프롬프트</h4>
+        <ul id="similar-list"></ul>
+      </div>
+    </div>
+    <p id="transform-error" class="error-state" style="display:none;"></p>
+  </div>
+
   <!-- 댓글 섹션 -->
   <div class="comment-section">
     <h3 class="section-title">댓글 <span id="comment-count"></span></h3>

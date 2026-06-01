@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const promptId = page.dataset.promptId;
   const isEdit = page.dataset.mode === 'edit' && !!promptId;
 
+  const promptTypeEl = document.getElementById('prompt-type');
   const categoryEl = document.getElementById('category');
   const aiModelEl = document.getElementById('ai-model');
   const titleEl = document.getElementById('title');
@@ -133,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryId = data.category?.id ? String(data.category.id) : '';
     categoryEl.value = categoryId;
     syncAiModels(categoryId, data.ai_model || '');
+    if (promptTypeEl) promptTypeEl.value = data.prompt_type || 'single_prompt';
 
     state.tags = (data.tags || []).map(t => t.name).filter(Boolean);
     renderTags();
@@ -199,6 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
       content: contentEl.value.trim(),
       category: categoryEl.value ? Number(categoryEl.value) : null,
       ai_model: aiModelEl.value,
+      prompt_type: promptTypeEl?.value || 'single_prompt',
+      workflow_steps: [],
+      agent_pattern: '',
       is_free: !!isFreeEl.checked,
       price: isFreeEl.checked ? '0' : (priceEl.value || '0'),
       tag_names: state.tags,

@@ -23,6 +23,7 @@
       <button type="button" class="active" data-tab="bookmarks" role="tab" aria-selected="true">북마크</button>
       <button type="button" data-tab="likes" role="tab" aria-selected="false">좋아요한 프롬프트</button>
       <button type="button" data-tab="mine" role="tab" aria-selected="false">내가 등록한 프롬프트</button>
+      <button type="button" data-tab="transforms" role="tab" aria-selected="false">내 변환</button>
       <button type="button" data-tab="comments" role="tab" aria-selected="false">내가 쓴 댓글</button>
     </div>
 
@@ -43,6 +44,13 @@
     <div id="panel-mine" class="library-panel" role="tabpanel" hidden>
       <p id="mine-count" class="result-count" style="margin: 14px 0 10px;"></p>
       <div id="mine-grid" class="prompt-grid">
+        <div class="loading-spinner">불러오는 중...</div>
+      </div>
+    </div>
+
+    <div id="panel-transforms" class="library-panel" role="tabpanel" hidden>
+      <p id="transforms-count" class="result-count" style="margin: 14px 0 10px;"></p>
+      <div id="transforms-list" class="library-transforms">
         <div class="loading-spinner">불러오는 중...</div>
       </div>
     </div>

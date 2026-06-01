@@ -72,6 +72,7 @@ class PromptListSerializer(serializers.ModelSerializer):
         model = Prompt
         fields = (
             'id', 'title', 'description', 'ai_model',
+            'prompt_type', 'agent_pattern',
             'user_id', 'author', 'category_name', 'tags',
             'is_free', 'price', 'view_count',
             'like_count', 'bookmark_count', 'is_liked', 'is_bookmarked',
@@ -108,6 +109,7 @@ class PromptDetailSerializer(serializers.ModelSerializer):
         model = Prompt
         fields = (
             'id', 'title', 'content', 'description', 'ai_model',
+            'prompt_type', 'workflow_steps', 'agent_pattern',
             'user_id', 'author', 'category', 'tags', 'files',
             'is_free', 'price', 'view_count',
             'like_count', 'bookmark_count', 'comment_count', 'is_liked', 'is_bookmarked',
@@ -151,6 +153,7 @@ class PromptWriteSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'title', 'content', 'description',
             'ai_model', 'category',
+            'prompt_type', 'workflow_steps', 'agent_pattern',
             'tag_ids', 'tag_names', 'is_free', 'price',
         )
         read_only_fields = ('id',)

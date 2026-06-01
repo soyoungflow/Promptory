@@ -34,6 +34,19 @@ class Tag(models.Model):
 
 
 class Prompt(models.Model):
+    PROMPT_TYPE_CHOICES = [
+        ('single_prompt', '단일 프롬프트'),
+        ('agent_recipe', '에이전트 레시피'),
+        ('mcp_package', 'MCP 패키지'),
+    ]
+    AGENT_PATTERN_CHOICES = [
+        ('', '해당 없음'),
+        ('sequential', 'Sequential'),
+        ('react', 'ReAct'),
+        ('reflection', 'Reflection'),
+        ('multi_agent', 'Multi-agent'),
+    ]
+
     AI_MODEL_CHOICES = [
         ('gpt-5-5',          'GPT-5.5'),
         ('gpt-5-5-instant',  'GPT-5.5 Instant'),
@@ -60,6 +73,16 @@ class Prompt(models.Model):
     price   = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, verbose_name='가격')
 
     view_count = models.PositiveIntegerField(default=0, verbose_name='조회수')
+
+    prompt_type = models.CharField(
+        max_length=20, choices=PROMPT_TYPE_CHOICES,
+        default='single_prompt', verbose_name='프롬프트 유형',
+    )
+    workflow_steps = models.JSONField(default=list, blank=True, verbose_name='워크플로우 단계')
+    agent_pattern = models.CharField(
+        max_length=20, choices=AGENT_PATTERN_CHOICES,
+        blank=True, default='', verbose_name='에이전트 패턴',
+    )
 
     # Soft Delete
     is_deleted = models.BooleanField(default=False, db_index=True, verbose_name='삭제 여부')

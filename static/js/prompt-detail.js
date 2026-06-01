@@ -96,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('delete-btn')?.addEventListener('click', () => deletePrompt());
       }
 
+      setupAgentSection(p, isAuthor);
       loadComments();
     } catch {
       detailEl.innerHTML = '<div class="error-state">프롬프트를 불러오지 못했습니다.</div>';
@@ -218,6 +219,170 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('프롬프트를 삭제하시겠습니까?')) return;
     const { res } = await Api.delete(`/prompts/${promptId}/`);
     if (res.ok) window.location.href = '/';
+  }
+
+  // ── Phase 4: 에이전트 변환 (인라인, 작성자만 버튼) ──
+  const agentSection = document.getElementById('agent-section');
+  const transformBtn = document.getElementById('transform-btn');
+  const transformStatus = document.getElementById('transform-status');
+  const transformResult = document.getElementById('transform-result');
+  const transformError = document.getElementById('transform-error');
+  const elapsedEl = document.getElementById('elapsed');
+  let taskSocket = null;
+  let pollTimer = null;
+
+  function setupAgentSection(prompt, isAuthor) {
+    if (!agentSection) return;
+    agentSection.style.display = '';
+    if (transformBtn) {
+      transformBtn.style.display = isAuthor && Auth.isLoggedIn() ? '' : 'none';
+    }
+    loadLatestAgentResult();
+    if (isAuthor && transformBtn) {
+      transformBtn.onclick = startTransform;
+    }
+  }
+
+  async function loadLatestAgentResult() {
+    try {
+      const { res, data } = await Api.get(`/prompts/${promptId}/agent/`);
+      if (res.ok && data) renderAgentResult(data);
+    } catch {
+      /* no transformation yet */
+    }
+  }
+
+  function renderAgentResult(agent) {
+    if (!transformResult) return;
+    transformStatus.style.display = 'none';
+    transformError.style.display = 'none';
+    transformResult.style.display = '';
+    const stepsEl = document.getElementById('agent-steps');
+    const steps = agent.decomposed_steps || [];
+    stepsEl.innerHTML = steps.map(s => `
+      <li>
+        <strong>${Api.escapeHtml(s.name || `Step ${s.step}`)}</strong>
+        <p>${Api.escapeHtml(s.system_message || '')}</p>
+        ${s.tool ? `<small>도구: ${Api.escapeHtml(s.tool)}</small>` : ''}
+      </li>
+    `).join('');
+    document.getElementById('confidence').textContent =
+      Math.round((agent.confidence_score || 0) * 100) + '%';
+    loadSimilarPrompts();
+  }
+
+  async function loadSimilarPrompts() {
+    const box = document.getElementById('similar-prompts');
+    const list = document.getElementById('similar-list');
+    if (!box || !list) return;
+    try {
+      const { res, data } = await Api.get(`/prompts/${promptId}/similar/`);
+      if (!res.ok || !data?.length) return;
+      box.style.display = '';
+      list.innerHTML = data.map(item => `
+        <li><a href="/prompts/${item.id}/">${Api.escapeHtml(item.title)}</a>
+        <span class="text-muted"> (${(item.similarity * 100).toFixed(1)}%)</span></li>
+      `).join('');
+    } catch {
+      /* optional */
+    }
+  }
+
+  function connectTaskWebSocket(taskId) {
+    if (!Auth.isLoggedIn()) return;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const token = encodeURIComponent(Auth.getAccess() || '');
+    const url = `${protocol}//${window.location.host}/ws/tasks/?token=${token}`;
+    try {
+      taskSocket = new WebSocket(url);
+      taskSocket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.task_id !== taskId) return;
+        if (msg.status === 'SUCCESS' || msg.status === 'FAIL') {
+          onTaskFinished(msg);
+        }
+      };
+      const hint = document.getElementById('transform-ws-hint');
+      if (hint) hint.textContent = '실시간 알림 연결됨';
+    } catch {
+      /* polling fallback only */
+    }
+  }
+
+  async function onTaskFinished(taskPayload) {
+    if (pollTimer) clearInterval(pollTimer);
+    if (taskSocket) {
+      taskSocket.close();
+      taskSocket = null;
+    }
+    if (taskPayload.status === 'FAIL') {
+      transformStatus.style.display = 'none';
+      transformError.style.display = '';
+      transformError.textContent = taskPayload.error_message || '변환에 실패했습니다.';
+      if (transformBtn) transformBtn.disabled = false;
+      return;
+    }
+    const { res, data } = await Api.get(`/prompts/${promptId}/agent/`);
+    if (res.ok) renderAgentResult(data);
+    if (transformBtn) transformBtn.disabled = false;
+  }
+
+  async function pollTaskStatus(taskId) {
+    const started = Date.now();
+    const maxWait = 120000;
+    pollTimer = setInterval(async () => {
+      elapsedEl.textContent = Math.floor((Date.now() - started) / 1000);
+      try {
+        const { res, data } = await Api.get(`/tasks/${taskId}/status/`);
+        if (!res.ok) return;
+        if (data.status === 'SUCCESS' || data.status === 'FAIL') {
+          onTaskFinished({
+            task_id: taskId,
+            status: data.status,
+            error_message: data.error_message,
+          });
+        }
+      } catch {
+        /* retry on next tick */
+      }
+      if (Date.now() - started > maxWait) {
+        clearInterval(pollTimer);
+        transformStatus.style.display = 'none';
+        transformError.style.display = '';
+        transformError.textContent = '변환 시간이 초과되었습니다.';
+        if (transformBtn) transformBtn.disabled = false;
+      }
+    }, 1000);
+  }
+
+  async function startTransform() {
+    if (!Auth.isLoggedIn()) {
+      location.href = '/accounts/login/';
+      return;
+    }
+    transformError.style.display = 'none';
+    transformResult.style.display = 'none';
+    transformBtn.disabled = true;
+    transformStatus.style.display = '';
+    elapsedEl.textContent = '0';
+
+    try {
+      const { res, data } = await Api.post(`/prompts/${promptId}/transform/`, {});
+      if (!res.ok) {
+        transformStatus.style.display = 'none';
+        transformError.style.display = '';
+        transformError.textContent = data?.detail || '변환 요청에 실패했습니다.';
+        transformBtn.disabled = false;
+        return;
+      }
+      connectTaskWebSocket(data.task_id);
+      pollTaskStatus(data.task_id);
+    } catch {
+      transformStatus.style.display = 'none';
+      transformError.style.display = '';
+      transformError.textContent = '서버 오류가 발생했습니다.';
+      transformBtn.disabled = false;
+    }
   }
 
   loadPrompt();

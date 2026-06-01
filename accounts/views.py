@@ -5,8 +5,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from ai_gateway.models import AgentTransformation
+from ai_gateway.serializers import MyTransformationSerializer
 from prompts.models import Prompt
 from prompts.serializers import PromptListSerializer
+from tasks.models import Task
 
 from .serializers import RegisterSerializer, UserProfileSerializer
 
@@ -55,6 +58,38 @@ class MyPromptListView(APIView):
             'user', 'category'
         ).prefetch_related('tags', 'likes', 'bookmarks')
         serializer = PromptListSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+
+class MyTransformationListView(APIView):
+    """GET /api/accounts/me/transformations/ — owned prompts, latest transform each."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        prompts = Prompt.objects.filter(user=request.user, is_deleted=False).order_by('-created_at')
+        rows = []
+        for prompt in prompts:
+            latest = AgentTransformation.objects.filter(prompt=prompt).order_by('-created_at').first()
+            if not latest:
+                continue
+            latest_task = Task.objects.filter(
+                prompt=prompt,
+                task_type='transform',
+                status='SUCCESS',
+                result_id=latest.id,
+            ).order_by('-finished_at').first()
+            rows.append({
+                'prompt_id': prompt.id,
+                'prompt_title': prompt.title,
+                'transformation_id': latest.id,
+                'decomposed_steps': latest.decomposed_steps,
+                'suggested_tools': latest.suggested_tools,
+                'confidence_score': latest.confidence_score,
+                'model_used': latest.model_used,
+                'created_at': latest.created_at,
+                'task_id': latest_task.task_id if latest_task else None,
+            })
+        serializer = MyTransformationSerializer(rows, many=True)
         return Response(serializer.data)
 
 

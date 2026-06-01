@@ -13,11 +13,44 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ai_server:
+    build: ./ai_server
+    ports:
+      - "8001:8000"
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
+      HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   web:
     build: .
     command: >
       sh -c "python manage.py migrate --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+             daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     ports:
       - "8000:8000"
     volumes:
@@ -33,8 +66,19 @@ services:
       DB_PASSWORD: postgres
       DB_HOST: db
       DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      FASTAPI_URL: http://ai_server:8000
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
+      HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
     depends_on:
       db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai_server:
         condition: service_healthy
     healthcheck:
       test:
@@ -45,8 +89,60 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 15s
+      start_period: 20s
+
+  celery_worker:
+    build: .
+    command: celery -A config worker -l info --concurrency=2
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.docker
+      SECRET_KEY: ${SECRET_KEY:-dev-docker-secret-change-in-production}
+      DEBUG: "True"
+      DB_NAME: promptory_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      FASTAPI_URL: http://ai_server:8000
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
+      HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai_server:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
 
 volumes:
   pgdata:
   media_data:
+  redis_data:
+  hf_cache:
+  prometheus_data:
+  grafana_data:

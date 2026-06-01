@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const bookmarkGrid = document.getElementById('bookmark-grid');
   const likeGrid = document.getElementById('like-grid');
   const mineGrid = document.getElementById('mine-grid');
+  const transformsList = document.getElementById('transforms-list');
+  const transformsCount = document.getElementById('transforms-count');
   const commentsList = document.getElementById('comments-list');
   const bookmarkCount = document.getElementById('bookmark-count');
   const likeCount = document.getElementById('like-count');
@@ -18,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bookmarks: document.getElementById('panel-bookmarks'),
     likes: document.getElementById('panel-likes'),
     mine: document.getElementById('panel-mine'),
+    transforms: document.getElementById('panel-transforms'),
     comments: document.getElementById('panel-comments'),
   };
 
@@ -148,22 +151,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderTransforms(items, errorMsg) {
+    if (errorMsg) {
+      transformsList.innerHTML = `<div class="error-state">${Api.escapeHtml(errorMsg)}</div>`;
+      return;
+    }
+    if (!items?.length) {
+      transformsList.innerHTML = '<div class="empty-state">변환된 프롬프트가 없습니다.</div>';
+      return;
+    }
+    transformsList.innerHTML = items.map(row => {
+      const steps = (row.decomposed_steps || []).length;
+      return `
+      <article class="library-transform-row">
+        <a href="/prompts/${row.prompt_id}/" class="library-comment-prompt">${Api.escapeHtml(row.prompt_title)}</a>
+        <p class="text-muted">${steps}단계 · 신뢰도 ${Math.round((row.confidence_score || 0) * 100)}% · ${Api.escapeHtml(row.model_used || '')}</p>
+        <p class="text-muted">${Api.escapeHtml(formatDt(row.created_at))}</p>
+      </article>`;
+    }).join('');
+  }
+
   async function load() {
     bookmarkGrid.innerHTML = '<div class="loading-spinner">불러오는 중...</div>';
     likeGrid.innerHTML = '<div class="loading-spinner">불러오는 중...</div>';
     mineGrid.innerHTML = '<div class="loading-spinner">불러오는 중...</div>';
+    transformsList.innerHTML = '<div class="loading-spinner">불러오는 중...</div>';
     commentsList.innerHTML = '<div class="loading-spinner">불러오는 중...</div>';
 
-    const [bm, lk, mine, cm] = await Promise.all([
+    const [bm, lk, mine, tr, cm] = await Promise.all([
       Api.get('/accounts/me/bookmarks/'),
       Api.get('/accounts/me/likes/'),
       Api.get('/accounts/me/prompts/'),
+      Api.get('/accounts/me/transformations/'),
       Api.get('/accounts/me/comments/'),
     ]);
 
     const bookmarks = bm.res.ok && Array.isArray(bm.data) ? bm.data : null;
     const likes = lk.res.ok && Array.isArray(lk.data) ? lk.data : null;
     const mineList = mine.res.ok && Array.isArray(mine.data) ? mine.data : null;
+    const transforms = tr.res.ok && Array.isArray(tr.data) ? tr.data : null;
     const comments = cm.res.ok && Array.isArray(cm.data) ? cm.data : null;
 
     if (bookmarks) {
@@ -188,6 +214,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       mineCount.textContent = '';
       renderGrid(mineGrid, [], '내 프롬프트를 불러오지 못했습니다.');
+    }
+
+    if (transforms) {
+      transformsCount.textContent = `내 변환 ${transforms.length}개`;
+      renderTransforms(transforms);
+    } else {
+      transformsCount.textContent = '';
+      renderTransforms([], '변환 목록을 불러오지 못했습니다.');
     }
 
     if (comments) {
