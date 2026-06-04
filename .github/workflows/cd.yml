@@ -1,56 +1,25 @@
-name: Django CD
+name: CD
 
 on:
-  workflow_run:
-    workflows: ["Django CI"]
-    types: [completed]
-
-concurrency:
-  group: production-deploy
-  cancel-in-progress: true
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
 
     steps:
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Test SSH connection
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT || '22' }}
-          script_stop: true
+          port: ${{ secrets.EC2_PORT }}
           script: |
-            set -euo pipefail
-
-            APP_DIR="${{ secrets.EC2_APP_DIR }}"
-            if [ -z "$APP_DIR" ]; then
-              echo "EC2_APP_DIR secret is empty"
-              exit 1
-            fi
-
-            cd "$APP_DIR"
-
-            echo "[1/4] Sync latest main"
-            git fetch origin main
-            git checkout main
-            git reset --hard origin/main
-
-            echo "[2/4] Ensure env exists"
-            if [ ! -f .env ]; then
-              echo ".env not found in $APP_DIR"
-              exit 1
-            fi
-
-            echo "[3/4] Rebuild and restart services"
-            docker compose pull || true
-            docker compose up -d --build
-
-            echo "[4/4] Remove dangling images"
-            docker image prune -f || true
-
-            echo "Deploy complete"
+            echo "SSH connected"
+            whoami
+            pwd
+            ls -al
