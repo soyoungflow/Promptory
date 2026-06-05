@@ -1,27 +1,27 @@
-# Data Model by Phase
+# Phase별 데이터 모델
 
-Consolidates `erd.md` with **actual Phase 3 code** and **Phase 4 target**.  
-Render the Mermaid block in GitHub, VS Code (Mermaid extension), or [mermaid.live](https://mermaid.live).
+`erd.md`와 **Phase 3 실제 코드**, **Phase 4 목표**를 통합합니다.  
+Mermaid 블록은 GitHub, VS Code (Mermaid 확장), [mermaid.live](https://mermaid.live)에서 렌더링할 수 있습니다.
 
 ---
 
-## Phase coverage matrix
+## Phase 커버리지 매트릭스
 
-| Entity | Phase 3 (code) | Phase 4 (planned) |
-|--------|:--------------:|:-----------------:|
-| CustomUser | ✅ | ✅ (unchanged) |
+| Entity | Phase 3 (코드) | Phase 4 |
+|--------|:--------------:|:-------:|
+| CustomUser | ✅ | ✅ (변경 없음) |
 | Category, Tag | ✅ | ✅ |
 | Prompt | ✅ | ✅ + `prompt_type`, `workflow_steps`, `agent_pattern` |
 | PromptFile | ✅ | ✅ |
 | Comment, Like, Bookmark | ✅ | ✅ |
 | AgentTransformation | ❌ | ✅ `ai_gateway` |
-| AnalysisResult | ❌ | ✅ `ai_gateway` |
+| AnalysisResult | ❌ | MVP 제외 (Q4) |
 | PromptEmbedding | ❌ | ✅ `ai_gateway` |
 | Task | ❌ | ✅ `tasks` |
 
 ---
 
-## Phase 3 — implemented ERD
+## Phase 3 — 구현 ERD
 
 ```mermaid
 erDiagram
@@ -104,7 +104,7 @@ erDiagram
 
 ---
 
-## Phase 4 — full target ERD (3차 + 4차)
+## Phase 4 — 전체 목표 ERD (3차 + 4차)
 
 ```mermaid
 erDiagram
@@ -122,7 +122,6 @@ erDiagram
   Prompt ||--o{ Bookmark : receives
 
   Prompt ||--o{ AgentTransformation : transforms_to
-  Prompt ||--o| AnalysisResult : analyzed_as
   Prompt ||--o| PromptEmbedding : embedded_as
   Prompt ||--o{ Task : tracked_by
 
@@ -155,15 +154,6 @@ erDiagram
     string model_used
   }
 
-  AnalysisResult {
-    int id PK
-    int prompt_id FK
-    text summary
-    json keywords
-    string pattern_label
-    float quality_score
-  }
-
   PromptEmbedding {
     int id PK
     int prompt_id FK
@@ -182,95 +172,97 @@ erDiagram
   }
 ```
 
+> MVP에서는 `AnalysisResult` 엔티티·관계를 다이어그램에서 제외했습니다 (DECISIONS Q4).
+
 ---
 
-## Spec vs code — field naming
+## 명세 vs 코드 — 필드 명명
 
-| erd.md / tech doc | Actual code (Phase 3) | Action for docs / ERD |
-|-------------------|----------------------|------------------------|
-| `Prompt.body` | `Prompt.content` | **Use `content` in implementation**; treat `body` as synonym in prose only |
-| `Category.description` | ✅ exists | — |
-| `Tag` without slug in some tables | ✅ `slug` in code | Keep slug in API/filters |
-| `AnalysisResult` 0..1 per prompt | Not implemented | Confirm: replace on re-analyze vs history table |
-| `AgentTransformation` 1..N | Planned (history) | Multiple rows per prompt allowed |
-| `PromptEmbedding` OneToOne | WBS: OneToOne | Re-embed overwrites same row |
-| `Task.result_id` | Generic FK | Points to transformation/analysis/embedding PK by `task_type` |
+| erd.md / 기술문서 | Phase 3 실제 코드 | 문서/ERD 조치 |
+|-------------------|-------------------|---------------|
+| `Prompt.body` | `Prompt.content` | **구현·ERD는 `content` 사용**; `body`는 설명에서만 동의어 |
+| `Category.description` | ✅ 존재 | — |
+| 일부 표에 slug 없음 | ✅ 코드에 `slug` | API/필터에 slug 유지 |
+| `AnalysisResult` 0..1 per prompt | MVP 미구현 | Q4: 제외 |
+| `AgentTransformation` 1..N | 구현 (이력) | 프롬프트당 다건 허용 |
+| `PromptEmbedding` OneToOne | WBS: OneToOne | 재 embed 시 동일 행 갱신 |
+| `Task.result_id` | `task_type`별 PK | GenericForeignKey 없음 (Q6) |
 
 ---
 
 ## `prompt_type` (Phase 4)
 
-| Value | Meaning |
-|-------|---------|
-| `single_prompt` | Default; classic shareable prompt |
-| `agent_recipe` | User-defined multi-step `workflow_steps` |
-| `mcp_package` | Future MCP export bundle (may be stub in MVP) |
+| Value | 의미 |
+|-------|------|
+| `single_prompt` | 기본; 일반 공유 프롬프트 |
+| `agent_recipe` | 사용자 정의 `workflow_steps` JSON |
+| `mcp_package` | 향후 MCP export 번들 (MVP는 DB choice만, UI 비활성) |
 
 ## `agent_pattern` (Phase 4)
 
-| Value | Pattern |
-|-------|---------|
-| `sequential` | Linear pipeline |
+| Value | 패턴 |
+|-------|------|
+| `sequential` | 선형 파이프라인 |
 | `react` | ReAct |
-| `reflection` | Self-critique loop |
-| `multi_agent` | Multi-agent |
-| _(empty)_ | N/A for single prompts |
+| `reflection` | 자기 비평 루프 |
+| `multi_agent` | 멀티 에이전트 |
+| _(empty)_ | single 프롬프트에 해당 없음 |
 
 ---
 
-## Task state machine (Phase 4)
+## Task 상태 머신 (Phase 4)
 
 ```mermaid
 stateDiagram-v2
-  [*] --> PENDING: User requests transform
-  PENDING --> PROCESSING: Worker picks task
-  PROCESSING --> SUCCESS: Result saved
-  PROCESSING --> FAIL: Error after retries
+  [*] --> PENDING: 사용자 변환 요청
+  PENDING --> PROCESSING: Worker가 태스크 수신
+  PROCESSING --> SUCCESS: 결과 저장
+  PROCESSING --> FAIL: 재시도 후 오류
   FAIL --> [*]
   SUCCESS --> [*]
 ```
 
-| Status | Meaning |
-|--------|---------|
-| PENDING | Row created; Celery not started or queued |
-| PROCESSING | Worker running; FastAPI call in flight |
-| SUCCESS | `AgentTransformation` (or other) saved; `result_id` set |
-| FAIL | `error_message` set; user can retry new task |
+| Status | 의미 |
+|--------|------|
+| PENDING | 행 생성; Celery 미시작 또는 대기열 |
+| PROCESSING | Worker 실행 중; FastAPI 호출 진행 |
+| SUCCESS | `AgentTransformation` 등 저장; `result_id` 설정 |
+| FAIL | `error_message` 설정; 새 Task로 재시도 가능 |
 
 ---
 
-## Data asset layers (from tech doc ch.9)
+## 데이터 자산 계층 (기술문서 ch.9)
 
-| Layer | Models | Moat / ops |
-|-------|--------|------------|
-| User-created | Prompt, PromptFile | Core catalog |
-| AI-generated | AgentTransformation, AnalysisResult | Value-add; do not overwrite Prompt body |
-| Discovery | PromptEmbedding | Similarity improves with volume |
-| Behavior | Like, Bookmark, Comment | Future ranking |
-| Operations | Task | Not domain content; traceability |
+| 계층 | Models | 가치 / 운영 |
+|------|--------|-------------|
+| 사용자 생성 | Prompt, PromptFile | 핵심 카탈로그 |
+| AI 생성 | AgentTransformation | 부가 가치; `Prompt.content` 덮어쓰지 않음 |
+| 탐색 | PromptEmbedding | 볼륨에 따라 유사도 개선 |
+| 행동 | Like, Bookmark, Comment | 향후 랭킹 |
+| 운영 | Task | 도메인 콘텐츠 아님; 추적성 |
 
-**Principle:** AI outputs live in separate tables; original `Prompt.content` is never replaced by model output.
+**원칙:** AI 출력은 별도 테이블; 원본 `Prompt.content`는 모델 출력으로 대체하지 않음.
 
 ---
 
-## Indexes (Phase 4 target)
+## 인덱스 (Phase 4 목표)
 
-From `erd.md` — apply when implementing:
+`erd.md` 기준 — 구현 시 적용:
 
 - `Prompt`: `(category, -created_at)`, `(user, -created_at)`, `(prompt_type)`
 - `Task`: `(user, status)`, `(task_type, status)`, `(-created_at)`
 - `AgentTransformation`: `(prompt, -created_at)`
-- Future: `pgvector` on embedding — **MVP uses JSON list + numpy cosine** per WBS
+- 향후: embedding에 `pgvector` — **MVP는 JSON list + numpy cosine** (WBS)
 
 ---
 
-## App ownership
+## 앱 소유
 
 | App | Phase 3 | Phase 4 |
 |-----|---------|---------|
 | `accounts` | CustomUser, JWT | — |
-| `prompts` | Prompt, Category, Tag, PromptFile | Prompt extensions, embed signal |
+| `prompts` | Prompt, Category, Tag, PromptFile | Prompt 확장, embed signal |
 | `interaction` | Comment, Like, Bookmark | — |
-| `ai_gateway` | Empty stub | Models, DRF views, HF client |
-| `tasks` | — | Task model, Celery tasks, optional WebSocket |
-| `monitoring` | — | Prometheus custom metrics |
+| `ai_gateway` | 스텁 | Models, DRF views, HF client |
+| `tasks` | — | Task model, Celery tasks, WebSocket |
+| `monitoring` | — | Prometheus 커스텀 메트릭 |

@@ -1,86 +1,86 @@
-# WBS Schedule — June 2–8, 2026 (Phase 4)
+# WBS 일정 — 2026년 6월 2일~8일 (Phase 4)
 
-Daily work plan for bootcamp **4차** delivery on **EC2 + Docker Compose**.
+부트캠프 **4차** 납품을 위한 **EC2 + Docker Compose** 일별 작업 계획입니다.
 
-**Related docs**
+**관련 문서**
 
-- [DECISIONS.md](./DECISIONS.md) — locked Q1–Q12
-- [PHASE_4_PLANNED.md](./PHASE_4_PLANNED.md) — feature & architecture map
-- [DEMO_EC2.md](../DEMO_EC2.md) — deploy URLs & short demo script
+- [DECISIONS.md](./DECISIONS.md) — 확정 Q1~Q12
+- [PHASE_4_PLANNED.md](./PHASE_4_PLANNED.md) — 기능·아키텍처 맵
+- [DEMO_EC2.md](../DEMO_EC2.md) — 배포 URL 및 짧은 시연 스크립트
 - [4차 발표가이드 및 평가기준.md](../4차 발표가이드 및 평가기준.md)
 - [자가정검 체크리스트(개인프로젝트).md](../자가정검 체크리스트(개인프로젝트).md)
 
 ---
 
-## Overview
+## 개요
 
-| Item | Detail |
-|------|--------|
-| **Period** | 2026-06-02 (Tue) ~ 2026-06-08 (Mon) |
-| **WBS mapping** | Day 2 ~ Day 8 (Day 1 = 6/01 infrastructure) |
-| **Deploy target** | EC2 + `docker compose` (7 services) — not Vercel for 4th demo |
-| **Code baseline** | Phase 4 implementation is already in the repository; this week focuses on **verify, seed, evidence, rehearsal** |
+| 항목 | 내용 |
+|------|------|
+| **기간** | 2026-06-02 (화) ~ 2026-06-08 (월) |
+| **WBS 매핑** | Day 2 ~ Day 8 (Day 1 = 6/01 인프라) |
+| **배포 대상** | EC2 + `docker compose` (7서비스) — 4차 시연 주 호스트는 Vercel 아님 |
+| **코드 기준선** | Phase 4 구현은 저장소에 반영됨; 이번 주는 **검증, seed, 증빙, 리허설** 중심 |
 
-### What is already in the repo
+### 저장소에 이미 있는 것
 
 - `docker-compose.yml` — db, redis, web (daphne), ai_server, celery_worker, prometheus, grafana
-- Models: `Prompt` extensions, `AgentTransformation`, `PromptEmbedding`, `Task`
-- FastAPI `ai_server/` — mock + optional HF loaders
+- Models: `Prompt` 확장, `AgentTransformation`, `PromptEmbedding`, `Task`
+- FastAPI `ai_server/` — mock + 선택 HF 로더
 - Celery tasks: `transform_prompt`, `embed_prompt`
 - APIs: transform, task status, agent JSON, similar, `me/transformations/`
-- UI: inline transform on detail, library tab “내 변환”, `prompt_type` on form
-- WebSocket `ws/tasks/?token=` + polling fallback
+- UI: 상세 인라인 변환, 보관함 탭 「내 변환」, 폼 `prompt_type`
+- WebSocket `ws/tasks/?token=` + 폴링 fallback
 
-### What this week must prove
+### 이번 주에 증명해야 할 것
 
-End-to-end flow from the self-check checklist:
+자가정검 체크리스트 E2E 흐름:
 
-> User input → Django → DB → AI request → **async (Celery)** → result in DB → **inline UI** → **monitoring**
+> 사용자 입력 → Django → DB → AI 요청 → **비동기 (Celery)** → 결과 DB 저장 → **인라인 UI** → **모니터링**
 
 ---
 
-## Daily completion criteria (at a glance)
+## 일별 완료 기준 (한눈에)
 
-| Date | WBS day | One-line “done” |
-|------|---------|-----------------|
-| **06-02** | Day 2 | Migrations applied; 4th models visible in Admin; Phase 3 features still work |
+| 날짜 | WBS day | 한 줄 「완료」 |
+|------|---------|----------------|
+| **06-02** | Day 2 | migrate 적용; Admin에 4차 모델 표시; Phase 3 기능 정상 |
 | **06-03** | Day 3 | `:8001/health` OK; FastAPI `/docs` transform (mock) OK |
-| **06-04** | Day 4 | `celery_worker` healthy; Task PENDING → SUCCESS (or FAIL with message) |
-| **06-05** | Day 5 | Author transform → inline 4 steps + library “내 변환” tab |
-| **06-06** | Day 6 | Prometheus targets UP; Grafana screenshots |
-| **06-07** | Day 7 | WebSocket + polling fallback; full stack restart demo passes |
-| **06-08** | Day 8 | Live presentation + evidence package submitted |
+| **06-04** | Day 4 | `celery_worker` healthy; Task PENDING → SUCCESS (또는 FAIL + message) |
+| **06-05** | Day 5 | 작성자 변환 → 인라인 4단계 + 보관함 「내 변환」 탭 |
+| **06-06** | Day 6 | Prometheus targets UP; Grafana 스크린샷 |
+| **06-07** | Day 7 | WebSocket + 폴링 fallback; 전체 스택 재기동 시연 통과 |
+| **06-08** | Day 8 | 라이브 발표 + 증빙 패키지 제출 |
 
 ---
 
-## Common commands (EC2)
+## 공통 명령 (EC2)
 
-Run from the project root on EC2 after `git pull`:
+EC2 프로젝트 루트에서 `git pull` 후:
 
 ```bash
-# Start / rebuild stack
+# 스택 기동 / 재빌드
 docker compose up -d --build
 
-# Migrations (after schema changes)
+# 마이그레이션 (스키마 변경 후)
 docker compose exec web python manage.py migrate --noinput
 
-# Optional sample data
+# 샘플 데이터 (선택)
 docker compose exec web python manage.py seed_mockup
 
-# Status & logs
+# 상태 및 로그
 docker compose ps
 docker compose logs celery_worker --tail 50
 docker compose logs ai_server --tail 50
 
-# Health checks
+# 헬스 체크
 curl -s http://127.0.0.1:8001/health
 curl -fsS http://127.0.0.1:8000/
 ```
 
-**Environment (recommended for rehearsal):**
+**환경 (리허설 권장):**
 
 ```bash
-# .env on EC2
+# EC2 .env
 LLM_PROVIDER=mock
 FASTAPI_URL=http://ai_server:8000
 REDIS_URL=redis://redis:6379/0
@@ -88,259 +88,272 @@ CELERY_BROKER_URL=redis://redis:6379/0
 CELERY_RESULT_BACKEND=redis://redis:6379/1
 ```
 
-**Security groups:** open **8000**, **8001**, **9090**, **3000** (or use SSH tunnels for demo).
+**보안 그룹:** **8000**, **8001**, **9090**, **3000** 개방 (또는 시연 시 SSH 터널).
 
 ---
 
-## June 2 (Tue) — Day 2 · Data model
+## 6월 2일 (화) — Day 2 · 데이터 모델
 
-**WBS goal:** Extend domain schema, AI result tables, Task model, Admin, migrations, seed.
+**WBS 목표:** 도메인 스키마 확장, AI 결과 테이블, Task 모델, Admin, migrations, seed.
 
-### Tasks
+### 작업
 
-| # | Task | Notes |
-|---|------|-------|
-| 1 | Deploy latest `main` on EC2 | `git pull` → `docker compose up -d --build` |
-| 2 | Run migrations | `docker compose exec web python manage.py migrate --noinput` |
-| 3 | Verify tables in Admin | `AgentTransformation`, `PromptEmbedding`, `Task`; Prompt has `prompt_type`, `workflow_steps`, `agent_pattern` |
-| 4 | Seed data | `seed_mockup` — add **3× `agent_recipe`** examples if not yet in seed |
-| 5 | ERD evidence | Export from [DATA_MODEL_BY_PHASE.md](./DATA_MODEL_BY_PHASE.md) (mermaid.live → PNG) |
-| 6 | Phase 3 regression | Register/login, CRUD, comments, likes, bookmarks, search, pagination |
+| # | Task | 비고 |
+|---|------|------|
+| 1 | EC2에 최신 `main` 배포 | `git pull` → `docker compose up -d --build` |
+| 2 | 마이그레이션 실행 | `docker compose exec web python manage.py migrate --noinput` |
+| 3 | Admin 테이블 확인 | `AgentTransformation`, `PromptEmbedding`, `Task`; Prompt에 `prompt_type`, `workflow_steps`, `agent_pattern` |
+| 4 | Seed | `seed_mockup` — **3× `agent_recipe`** 예시 |
+| 5 | ERD 증빙 | [DATA_MODEL_BY_PHASE.md](./DATA_MODEL_BY_PHASE.md)에서 mermaid.live → PNG |
+| 6 | Phase 3 회귀 | 가입/로그인, CRUD, 댓글, 좋아요, 북마크, 검색, 페이지네이션 |
 
-### Exit criteria
+### 진행 체크리스트 (갱신)
 
-- You can explain: core models + how **AI results are separate tables** (no overwrite of `Prompt.content`).
-- Self-check §2 (3차 유지), §3 (데이터 구조) partially satisfied.
+- [ ] EC2 최신 `main` 배포 (`git pull` + `docker compose up -d --build`)
+- [ ] EC2 migrate (`docker compose exec web python manage.py migrate --noinput`)
+- [x] 스키마/코드 준비 확인:
+  - `Prompt`에 `prompt_type`, `workflow_steps`, `agent_pattern`
+  - `ai_gateway`: `AgentTransformation`, `PromptEmbedding`
+  - `tasks`: `Task` (UUID + status)
+- [x] Seed 코드 **3× `agent_recipe`** 및 필드 매핑 반영
+- [ ] ERD 이미지 export (mermaid.live → PNG)
+- [x] Phase 3 회귀 테스트 (`DJANGO_SETTINGS_MODULE=config.settings.sqlite_legacy manage.py test accounts prompts interaction` — 19 passed)
 
-### Evidence to capture
+### 종료 기준
 
-- [ ] Admin screenshot: Task + AgentTransformation list
-- [ ] ERD image for slide deck
+- 핵심 모델과 **AI 결과가 별도 테이블**임을 설명 가능 (`Prompt.content` 덮어쓰지 않음).
+- 자가정검 §2 (3차 유지), §3 (데이터 구조) 일부 충족.
 
----
+### 캡처할 증빙
 
-## June 3 (Wed) — Day 3 · FastAPI + AI server
-
-**WBS goal:** Independent AI server, mock/HF, `/health`, `/transform`, `/embed`.
-
-### Tasks
-
-| # | Task | Notes |
-|---|------|-------|
-| 1 | Container health | `docker compose ps` — `ai_server` healthy |
-| 2 | Health endpoint | `curl http://<EC2>:8001/health` → `ok`, `provider: mock` |
-| 3 | FastAPI docs | Open `http://<EC2>:8001/docs` |
-| 4 | Manual transform | POST `/transform` with sample `prompt_text` → 4-step JSON |
-| 5 | Lock mock for rehearsal | `LLM_PROVIDER=mock` in EC2 `.env` (DECISIONS Q10) |
-| 6 | HF prep (optional) | Extend `ai_server` image with torch/transformers; first run 10–15 min download — not required for daily rehearsal |
-
-### Exit criteria
-
-- Clear story: **Django does not run the model**; FastAPI does.
-- Self-check §4-2, §4-3 (FastAPI 분리, 엔드포인트 설명).
-
-### Evidence to capture
-
-- [ ] `/docs` screenshot
-- [ ] Sample `/transform` response (JSON or UI from Swagger)
+- [ ] Admin 스크린샷: Task + AgentTransformation 목록
+- [ ] 발표용 ERD 이미지
 
 ---
 
-## June 4 (Thu) — Day 4 · Celery + Redis
+## 6월 3일 (수) — Day 3 · FastAPI + AI server
 
-**WBS goal:** Async worker, Task state machine, Django → FastAPI via httpx.
+**WBS 목표:** 독립 AI 서버, mock/HF, `/health`, `/transform`, `/embed`.
 
-### Tasks
+### 작업
 
-| # | Task | Notes |
-|---|------|-------|
+| # | Task | 비고 |
+|---|------|------|
+| 1 | 컨테이너 health | `docker compose ps` — `ai_server` healthy |
+| 2 | Health | `curl http://<EC2>:8001/health` → `ok`, `provider: mock` |
+| 3 | FastAPI docs | `http://<EC2>:8001/docs` |
+| 4 | 수동 transform | POST `/transform` 샘플 `prompt_text` → 4단계 JSON |
+| 5 | 리허설 mock 고정 | EC2 `.env`에 `LLM_PROVIDER=mock` (DECISIONS Q10) |
+| 6 | HF 준비 (선택) | torch/transformers 이미지; 첫 실행 10~15분 — 일일 리허설 필수 아님 |
+
+### 종료 기준
+
+- **Django가 모델을 돌리지 않고 FastAPI가 돈다**는 설명 가능.
+- 자가정검 §4-2, §4-3 (FastAPI 분리, 엔드포인트).
+
+### 캡처할 증빙
+
+- [ ] `/docs` 스크린샷
+- [ ] `/transform` 샘플 응답 (JSON 또는 Swagger UI)
+
+---
+
+## 6월 4일 (목) — Day 4 · Celery + Redis
+
+**WBS 목표:** 비동기 Worker, Task 상태 머신, Django → FastAPI httpx.
+
+### 작업
+
+| # | Task | 비고 |
+|---|------|------|
 | 1 | Redis | `docker compose exec redis redis-cli ping` → `PONG` |
 | 2 | Celery worker | `docker compose logs celery_worker` — `ready` |
-| 3 | Task lifecycle | Trigger transform (shell or next-day UI); confirm PENDING → PROCESSING → SUCCESS in Admin |
-| 4 | Failure path | Optional: stop `ai_server` briefly → Task FAIL + `error_message` |
-| 5 | Embed on create | New prompt → `Task` with `task_type=embed` (skipped during `manage.py test`) |
+| 3 | Task 생명주기 | 변환 트리거; Admin에서 PENDING → PROCESSING → SUCCESS |
+| 4 | 실패 경로 | 선택: `ai_server` 잠시 중지 → Task FAIL + `error_message` |
+| 5 | 생성 시 embed | 새 프롬프트 → `task_type=embed` (`manage.py test` 시 스킵) |
 
-### Exit criteria
+### 종료 기준
 
-- Immediate **202 + task_id**; long work off the HTTP thread.
-- Self-check §5-1 ~ §5-3 (Celery + Redis, Task 생성, 상태 4단계).
+- 즉시 **202 + task_id**; 긴 작업은 HTTP 스레드 밖.
+- 자가정검 §5-1 ~ §5-3 (Celery + Redis, Task 생성, 4단계 상태).
 
-### Evidence to capture
+### 캡처할 증빙
 
-- [ ] Celery worker log line: `transform_success` or equivalent
-- [ ] Admin: Task row with SUCCESS and `result_id`
+- [ ] Celery 로그: `transform_success` 등
+- [ ] Admin: SUCCESS Task + `result_id`
 
 ---
 
-## June 5 (Fri) — Day 5 · API + UI (core demo path)
+## 6월 5일 (금) — Day 5 · API + UI (핵심 시연 경로)
 
-**WBS goal:** Transform API, status polling, **inline** agent UI on detail, library tab.
+**WBS 목표:** Transform API, 상태 폴링, 상세 **인라인** 에이전트 UI, 보관함 탭.
 
-### Tasks
+### 작업
 
-| # | Task | Notes |
-|---|------|-------|
-| 1 | Login as **author** | Non-author must not see transform button (Q7) |
-| 2 | Detail page | Open own prompt → **에이전트로 변환하기** |
-| 3 | UX | “변환 중… N초” → mock ~2–3s → **4 steps + confidence** inline |
-| 4 | Network tab | `POST .../transform/` → `GET .../tasks/{id}/status/` → `GET .../agent/` |
-| 5 | Library | Tab **내 변환** — latest transform per owned prompt (Q3) |
-| 6 | Similar prompts | After embed SUCCESS on 2+ prompts, check similar list on detail |
-| 7 | Full script once | Home → explore → login → transform → library (record or checklist) |
+| # | Task | 비고 |
+|---|------|------|
+| 1 | **작성자**로 로그인 | 비작성자는 변환 버튼 없음 (Q7) |
+| 2 | 상세 페이지 | 본인 프롬프트 → **에이전트로 변환하기** |
+| 3 | UX | 「변환 중… N초」 → mock ~2~3s → **4단계 + confidence** 인라인 |
+| 4 | Network | `POST .../transform/` → `GET .../tasks/{id}/status/` → `GET .../agent/` |
+| 5 | 보관함 | 탭 **내 변환** — 소유 프롬프트당 최신 1건 (Q3) |
+| 6 | 유사 프롬프트 | 2건 이상 embed SUCCESS 후 상세 유사 목록 |
+| 7 | 전체 스크립트 1회 | 홈 → 탐색 → 로그인 → 변환 → 보관함 |
 
-### Exit criteria
+### 종료 기준
 
-- Full user story for presentation sections (2) AI 연결 + (3) 비동기.
-- Self-check §4-4, §5-4, §5-5 (결과 저장/조회, 화면, 상태 API).
+- 발표 (2) AI 연결 + (3) 비동기 사용자 스토리 완결.
+- 자가정검 §4-4, §5-4, §5-5.
 
-### Evidence to capture
+### 캡처할 증빙
 
-- [ ] Detail page with inline agent steps
-- [ ] Library “내 변환” tab
+- [ ] 인라인 4단계 상세 화면
+- [ ] 보관함 「내 변환」 탭
 - [ ] DevTools: task status JSON
 
 ---
 
-## June 6 (Sat) — Day 6 · Monitoring + similarity
+## 6월 6일 (토) — Day 6 · 모니터링 + 유사도
 
-**WBS goal:** Prometheus, Grafana, `/metrics`, embedding similarity.
+**WBS 목표:** Prometheus, Grafana, `/metrics`, 임베딩 유사도.
 
-### Tasks
+### 작업
 
-| # | Task | Notes |
-|---|------|-------|
-| 1 | Prometheus | `http://<EC2>:9090/targets` — jobs `django`, `fastapi` **UP** |
-| 2 | Django metrics | `http://<EC2>:8000/metrics` loads |
+| # | Task | 비고 |
+|---|------|------|
+| 1 | Prometheus | `http://<EC2>:9090/targets` — `django`, `fastapi` **UP** |
+| 2 | Django metrics | `http://<EC2>:8000/metrics` |
 | 3 | Grafana | `http://<EC2>:3000` (admin/admin); Prometheus datasource |
-| 4 | Dashboard | Panels: traffic, latency, task outcomes; run 2–3 transforms to populate graphs |
-| 5 | Similarity | `GET /api/prompts/{id}/similar/` after embeddings exist |
-| 6 | Self-check §7–10 | Mark `[x]` only for items you can demo live |
+| 4 | 대시보드 | 트래픽·지연·태스크 결과; 변환 2~3회로 그래프 채우기 |
+| 5 | 유사도 | 임베딩 후 `GET /api/prompts/{id}/similar/` |
+| 6 | 자가정검 §7~10 | 라이브 시연 가능한 항목만 `[x]` |
 
-### Exit criteria
+### 종료 기준
 
-- Presentation section (5) 모니터링 + 배포 구조.
-- Bonus rubric: Prometheus + Grafana + custom metrics.
+- 발표 (5) 모니터링 + 배포 구조.
+- 가산: Prometheus + Grafana + 커스텀 메트릭.
 
-### Evidence to capture
+### 캡처할 증빙
 
 - [ ] Prometheus targets UP
-- [ ] Grafana dashboard screenshot
-- [ ] (Optional) `agent_transformation_total` or inference histogram visible
+- [ ] Grafana 대시보드 스크린샷
+- [ ] (선택) `agent_transformation_total` 등
 
 ---
 
-## June 7 (Sun) — Day 7 · WebSocket + stabilization
+## 6월 7일 (일) — Day 7 · WebSocket + 안정화
 
-**WBS goal:** WS task updates, polling fallback, troubleshooting doc, full restart rehearsal.
+**WBS 목표:** WS 태스크 알림, 폴링 fallback, troubleshooting, 전체 재기동 리허설.
 
-### Tasks
+### 작업
 
-| # | Task | Notes |
-|---|------|-------|
-| 1 | WebSocket | On transform, DevTools → `ws/tasks/?token=...`; UI hint “실시간 알림 연결됨” |
-| 2 | Fallback | Disable WS or block WS port → polling still reaches SUCCESS (Q11) |
-| 3 | Troubleshooting | Create/update `docs/troubleshooting.md` — 3 scenarios (ai_server slow, Celery broker, Prometheus scrape) |
-| 4 | Cold start | `docker compose down` → `up -d --build` → migrate → one full demo |
-| 5 | Slides draft | 15 min outline per 발표 가이드 (intro, 3차, AI, async, ops, demo, limits) |
-| 6 | Ports / SG | Finalize EC2 security group rules |
+| # | Task | 비고 |
+|---|------|------|
+| 1 | WebSocket | 변환 시 DevTools → `ws/tasks/?token=...`; 「실시간 알림 연결됨」 |
+| 2 | Fallback | WS 차단 시에도 폴링으로 SUCCESS (Q11) |
+| 3 | Troubleshooting | `docs/troubleshooting.md` — 3시나리오 (ai_server 지연, Celery broker, Prometheus scrape) |
+| 4 | 콜드 스타트 | `docker compose down` → `up -d --build` → migrate → 시연 1회 |
+| 5 | 슬라이드 초안 | 발표 가이드 15분 개요 |
+| 6 | 포트 / SG | EC2 보안 그룹 최종 |
 
-### Exit criteria
+### 종료 기준
 
-- Confident recovery narrative if something fails during demo.
-- Self-check §5-5 (WS or polling), §7 (예외/로그).
+- 시연 중 장애 시 복구 스토리 준비.
+- 자가정검 §5-5 (WS 또는 폴링), §7 (예외/로그).
 
-### Evidence to capture
+### 캡처할 증빙
 
-- [ ] WS connected in DevTools
-- [ ] (Optional) FAIL task screenshot with `error_message` for slide “한계/대응”
+- [ ] DevTools WS 연결
+- [ ] (선택) FAIL Task + `error_message` (한계/대응 슬라이드)
 
 ---
 
-## June 8 (Mon) — Day 8 · Demo + presentation
+## 6월 8일 (월) — Day 8 · 시연 + 발표
 
-**WBS goal:** Live 21-step flow, 3 rehearsals, submission package.
+**WBS 목표:** 라이브 21단계, 리허설 3회, 제출 패키지.
 
-### Suggested live flow (10–15 min)
+### 권장 라이브 흐름 (10~15분)
 
-| Step | Content | ~min |
-|------|---------|------|
-| 1 | Problem, users, 3차 → 4차 evolution | 1.5 |
-| 2 | Architecture diagram (7 containers) | 1.5 |
-| 3 | Phase 3 quick: browse, login | 1 |
-| 4 | **Transform button** → Task → inline 4 steps | 3 |
-| 5 | Library “내 변환” | 1 |
-| 6 | FastAPI `/docs` + one `/transform` | 1 |
+| Step | 내용 | ~분 |
+|------|------|-----|
+| 1 | 문제, 사용자, 3차→4차 진화 | 1.5 |
+| 2 | 아키텍처 (7 컨테이너) | 1.5 |
+| 3 | Phase 3: 탐색, 로그인 | 1 |
+| 4 | **변환 버튼** → Task → 인라인 4단계 | 3 |
+| 5 | 보관함 「내 변환」 | 1 |
+| 6 | FastAPI `/docs` + `/transform` 1회 | 1 |
 | 7 | Prometheus + Grafana | 2 |
 | 8 | Admin: Task / AgentTransformation | 0.5 |
-| 9 | Limits (mock default, no payment, no analyze MVP) + roadmap | 1 |
+| 9 | 한계 (mock 기본, 결제·analyze MVP 없음) + 로드맵 | 1 |
 
-### Tasks
+### 작업
 
-| # | Task | Notes |
-|---|------|-------|
-| 1 | Morning check | `LLM_PROVIDER=mock`, all containers healthy |
-| 2 | Rehearsal ×3 | Same script; only claim what you showed |
-| 3 | Evidence pack | See checklist below |
-| 4 | HF (optional) | 30s “real model” only if HF image ready; main demo stays mock |
+| # | Task | 비고 |
+|---|------|------|
+| 1 | 오전 점검 | `LLM_PROVIDER=mock`, 컨테이너 healthy |
+| 2 | 리허설 ×3 | 동일 스크립트; 보여준 것만 주장 |
+| 3 | 증빙 패키지 | 아래 체크리스트 |
+| 4 | HF (선택) | HF 이미지 준비 시 30초만; 본 시연은 mock |
 
-### Evidence submission checklist
+### 증빙 제출 체크리스트
 
-- [ ] Main UI / transform result
-- [ ] `docker compose ps` (7 services)
+- [ ] 메인 UI / 변환 결과
+- [ ] `docker compose ps` (7서비스)
 - [ ] FastAPI `/docs`
-- [ ] Celery log or Task SUCCESS in Admin
+- [ ] Celery 로그 또는 Admin Task SUCCESS
 - [ ] Prometheus targets UP
-- [ ] Grafana dashboard
-- [ ] (Optional) FAIL case + error_message
-- [ ] GitHub / deploy URL on cover slide
+- [ ] Grafana 대시보드
+- [ ] (선택) FAIL + `error_message`
+- [ ] 표지 슬라이드 GitHub / 배포 URL
 
-### Exit criteria
+### 종료 기준
 
-- All items in **자가정검** that you marked `[x]` are demoable without improvisation.
-- Evaluation: “AI + operations backend” story is complete.
+- 자가정검에서 `[x]` 한 항목은 즉흥 없이 시연 가능.
+- 평가: 「AI + 운영 백엔드」 스토리 완결.
 
 ---
 
-## Mapping to evaluation rubric
+## 평가 루브릭 매핑
 
-| Rubric area | Primary days |
-|-------------|--------------|
+| 루브릭 영역 | 주요 날짜 |
+|-------------|-----------|
 | 3차 서비스 유지 | 06-02, 06-05 |
-| AI + server split | 06-03, 06-05 |
-| AI result DB + API/UI | 06-02, 06-05 |
-| Async (Celery + Redis) | 06-04, 06-05 |
-| Task status 4단계 | 06-04, 06-05, 06-07 |
+| AI + 서버 분리 | 06-03, 06-05 |
+| AI 결과 DB + API/UI | 06-02, 06-05 |
+| 비동기 (Celery + Redis) | 06-04, 06-05 |
+| Task 상태 4단계 | 06-04, 06-05, 06-07 |
 | Docker Compose | 06-02 ~ 06-07 |
-| Monitoring | 06-06 |
-| Deploy / reproducibility | 06-02, 06-07, 06-08 |
+| 모니터링 | 06-06 |
+| 배포 / 재현성 | 06-02, 06-07, 06-08 |
 
 ---
 
-## Out of scope this week (per DECISIONS)
+## 이번 주 범위 밖 (DECISIONS)
 
-| Item | Reason |
-|------|--------|
-| `AnalysisResult` / analyze task | Q4 — MVP excluded |
-| Payment for paid prompts | Business phase 3 |
-| Dedicated `/prompts/{id}/agent/` page | Q2 — inline only |
-| Vercel as primary 4th host | Q1 — EC2 Compose |
-| `mcp_package` UI | Q8 — DB choice only, UI disabled |
-
----
-
-## Priority if time is short
-
-1. **06-02:** EC2 deploy + `migrate` + Phase 3 smoke test  
-2. **06-05:** Full transform demo path (non-negotiable)  
-3. **06-06:** Prometheus + Grafana screenshots  
-4. **06-08:** Rehearsal + evidence  
-
-Everything else strengthens the score but depends on (2) working on EC2.
+| 항목 | 사유 |
+|------|------|
+| `AnalysisResult` / analyze task | Q4 — MVP 제외 |
+| 유료 프롬프트 결제 | 비즈니스 phase 3 |
+| 전용 `/prompts/{id}/agent/` 페이지 | Q2 — 인라인만 |
+| Vercel을 4차 주 호스트 | Q1 — EC2 Compose |
+| `mcp_package` UI | Q8 — DB choice만, UI 비활성 |
 
 ---
 
-## Document history
+## 시간이 부족할 때 우선순위
+
+1. **06-02:** EC2 deploy + `migrate` + Phase 3 스모크  
+2. **06-05:** 전체 변환 시연 경로 (필수)  
+3. **06-06:** Prometheus + Grafana 스크린샷  
+4. **06-08:** 리허설 + 증빙  
+
+나머지는 (2)가 EC2에서 동작할 때 점수를 보강합니다.
+
+---
+
+## 문서 이력
 
 | Date | Note |
 |------|------|
-| 2026-05-27 | Initial schedule from WBS v2 + DECISIONS Q1–Q12 + repo implementation status |
+| 2026-05-27 | WBS v2 + DECISIONS Q1~Q12 + 저장소 구현 상태로 초안 작성 |
+| 2026-06-04 | 영어 문서 한글 번역 |

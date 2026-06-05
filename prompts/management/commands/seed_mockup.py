@@ -23,6 +23,19 @@ PROMPT_CONTENT = """당신은 전문 AI 프롬프트 엔지니어입니다.
 3. 바로 사용할 수 있는 최종 결과물
 """
 
+AGENT_RECIPE_CONTENT = """블로그 글쓰기 에이전트 워크플로우
+
+이 프롬프트는 단일 명령으로 4단계 에이전트 체인을 실행합니다.
+1단계 리서치 → 2단계 개요 → 3단계 초안 → 4단계 검토
+"""
+
+AGENT_RECIPE_WORKFLOW = [
+    {"step": 1, "name": "리서치", "system_message": "주제 관련 최신 정보 5개 수집", "tool": "web_search"},
+    {"step": 2, "name": "개요", "system_message": "수집한 정보를 H2/H3 헤딩으로 구조화", "tool": "outline_generator"},
+    {"step": 3, "name": "초안", "system_message": "섹션당 300자 이상 풀어쓰기", "tool": "text_generation"},
+    {"step": 4, "name": "검토", "system_message": "문법/사실/일관성 점검 및 수정 제안", "tool": "reflection"},
+]
+
 
 PROMPTS = [
     {
@@ -395,7 +408,62 @@ EXTRA_PROMPTS = [
     },
 ]
 
+AGENT_RECIPE_PROMPTS = [
+    {
+        'title': '블로그 글쓰기 에이전트 (4단계 자동 분해)',
+        'description': '리서치-개요-초안-검토를 자동으로 실행하는 에이전트 레시피 템플릿.',
+        'category': 'ChatGPT',
+        'ai_model': 'gpt-5-5',
+        'is_free': True,
+        'price': 0,
+        'tags': ['글쓰기', '에이전트', '자동화'],
+        'author': '김프롬',
+        'views': 320,
+        'likes': 41,
+        'comments': 7,
+        'prompt_type': 'agent_recipe',
+        'workflow_steps': AGENT_RECIPE_WORKFLOW,
+        'agent_pattern': 'sequential',
+        'content_override': AGENT_RECIPE_CONTENT,
+    },
+    {
+        'title': '회의록 요약 에이전트 (의사결정 추출)',
+        'description': '회의 텍스트에서 의사결정·담당자·기한을 단계적으로 추출하는 레시피.',
+        'category': 'Claude',
+        'ai_model': 'claude-sonnet-4-6',
+        'is_free': True,
+        'price': 0,
+        'tags': ['요약', '비즈니스', '에이전트'],
+        'author': 'devLee',
+        'views': 280,
+        'likes': 36,
+        'comments': 5,
+        'prompt_type': 'agent_recipe',
+        'workflow_steps': AGENT_RECIPE_WORKFLOW,
+        'agent_pattern': 'sequential',
+        'content_override': AGENT_RECIPE_CONTENT,
+    },
+    {
+        'title': '코드 리뷰 에이전트 (분석-수정안-검증)',
+        'description': '코드 품질 문제를 찾아 수정안과 검증 체크리스트를 생성하는 레시피.',
+        'category': 'Gemini',
+        'ai_model': 'gemini-3-1-pro',
+        'is_free': False,
+        'price': 1500,
+        'tags': ['코딩', '리뷰', '에이전트'],
+        'author': 'devLee',
+        'views': 260,
+        'likes': 33,
+        'comments': 4,
+        'prompt_type': 'agent_recipe',
+        'workflow_steps': AGENT_RECIPE_WORKFLOW,
+        'agent_pattern': 'sequential',
+        'content_override': AGENT_RECIPE_CONTENT,
+    },
+]
+
 PROMPTS.extend(EXTRA_PROMPTS)
+PROMPTS.extend(AGENT_RECIPE_PROMPTS)
 
 AUTHOR_EMAILS = {
     '김프롬': 'kim-prom@promptory.local',
@@ -443,9 +511,12 @@ class Command(BaseCommand):
                 user=authors[item['author']],
                 defaults={
                     'category': categories.get(item['category']),
-                    'content': PROMPT_CONTENT,
+                    'content': item.get('content_override', PROMPT_CONTENT),
                     'description': item['description'],
                     'ai_model': item['ai_model'],
+                    'prompt_type': item.get('prompt_type', 'single_prompt'),
+                    'workflow_steps': item.get('workflow_steps', []),
+                    'agent_pattern': item.get('agent_pattern', ''),
                     'is_free': item['is_free'],
                     'price': item['price'],
                     'view_count': item['views'],

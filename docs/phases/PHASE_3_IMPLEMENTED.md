@@ -1,105 +1,103 @@
-# Phase 3 — Implemented (Bootcamp “3차”)
+# Phase 3 — 구현 완료 (부트캠프 「3차」)
 
-**Status:** Complete in repository  
-**Product slice:** Korean AI prompt **sharing** platform (discover, publish, engage).  
-**Not in scope:** Agent auto-transformation, Celery, FastAPI, embeddings, operational metrics stack.
-
----
-
-## 1. Goals and success criteria (achieved)
-
-| Goal | Evidence |
-|------|----------|
-| Users can sign up and use JWT end-to-end | `accounts` register/login/logout/refresh APIs + `auth.js` |
-| Prompt lifecycle with author permissions | `PromptViewSet` + `IsAuthorOrReadOnly` + soft delete |
-| Discovery | Search, filters, pagination on `GET /api/prompts/` |
-| Social loop | Comments (threaded), likes, bookmarks |
-| Personal hub | `/library/` with 4 tabs (see Phase 4 gap: 5th tab planned) |
-| Ops baseline | Docker Compose (web + Postgres), GitHub CI, EC2 CD |
+**상태:** 저장소에 구현 완료  
+**제품 범위:** 한국어 AI 프롬프트 **공유** 플랫폼 (탐색, 게시, 참여).  
+**범위 밖:** 에이전트 자동 변환, Celery, FastAPI, 임베딩, 운영 메트릭 스택 (Phase 4에서 추가).
 
 ---
 
-## 2. Architecture (as built)
+## 1. 목표 및 달성 기준
+
+| 목표 | 근거 |
+|------|------|
+| JWT로 가입부터 E2E 사용 | `accounts` register/login/logout/refresh API + `auth.js` |
+| 작성자 권한으로 프롬프트 생명주기 | `PromptViewSet` + `IsAuthorOrReadOnly` + soft delete |
+| 탐색 | `GET /api/prompts/` 검색·필터·페이지네이션 |
+| 소셜 루프 | 댓글(스레드), 좋아요, 북마크 |
+| 개인 허브 | `/library/` 4탭 (5번째 「내 변환」은 Phase 4) |
+| 운영 기본 | Docker Compose (web + Postgres), GitHub CI, EC2 CD |
+
+---
+
+## 2. 아키텍처 (구현 기준)
 
 ```
 Browser
-  ├─ GET /*           → Django TemplateView (HTML shell)
-  └─ fetch /api/*     → DRF + JWT (data + permissions)
+  ├─ GET /*           → Django TemplateView (HTML 껍데기)
+  └─ fetch /api/*     → DRF + JWT (데이터 + 권한)
 
 PostgreSQL ← Django ORM
 Media files ← filesystem (MEDIA_ROOT)
 ```
 
-| Layer | Responsibility |
-|-------|----------------|
-| Templates | Render pages only; no server-side business data |
-| `static/js/*.js` | Call API, DOM updates, JWT in `localStorage` |
-| DRF | Validation, permissions, serializers, DB |
-| Admin | Session-based Django admin (separate from JWT UI) |
+| 계층 | 역할 |
+|------|------|
+| Templates | 페이지 렌더만; 서버 사이드 비즈니스 데이터 없음 |
+| `static/js/*.js` | API 호출, DOM 갱신, JWT `localStorage` |
+| DRF | 검증, 권한, serializer, DB |
+| Admin | 세션 기반 Django admin (JWT UI와 분리) |
 
-**Auth:** JWT-only for the SPA-style front end (`README.md` policy).  
-**Settings:** `config.settings.local` (dev), `production`, `docker` (Compose).
-
----
-
-## 3. User flows (summary)
-
-Detailed English flows: [../USERFLOW.md](../USERFLOW.md).
-
-| Flow | Entry | Key API |
-|------|-------|---------|
-| Register | `/accounts/register/` | `POST /api/accounts/register/` → tokens |
-| Login | `/accounts/login/` | `POST /api/accounts/login/` |
-| Explore | `/prompts/` | `GET /api/prompts/?search=&category=&...` |
-| Detail | `/prompts/{id}/` | `GET /api/prompts/{id}/` (+ view_count++) |
-| Create / edit | `/prompts/new/`, `.../edit/` | `POST` / `PUT /api/prompts/` |
-| Like / bookmark | Detail actions | `POST .../like/`, `.../bookmark/` |
-| Comments | Detail section | `GET/POST .../comments/`, `DELETE /api/comments/{id}/` |
-| Library | `/library/` | `me/bookmarks`, `me/likes`, `me/prompts`, `me/comments` |
-| Logout | Nav | `POST /api/accounts/logout/` + clear storage |
-
-**Paid prompts:** `is_free=false` shows client-side preview only; **no payment API** (deferred to business Phase 3 in tech spec).
+**인증:** SPA형 프론트는 JWT 전용 (`README.md` 정책).  
+**설정:** `config.settings.local` (개발), `production`, `docker` (Compose).
 
 ---
 
-## 4. Routes and screens
+## 3. 사용자 흐름 (요약)
 
-| Screen | URL | JS |
-|--------|-----|-----|
-| Home | `/` | — |
-| Explore | `/prompts/` | `prompts.js` |
-| Detail | `/prompts/{id}/` | `prompt-detail.js` |
-| Form | `/prompts/new/`, `/prompts/{id}/edit/` | `prompt-form.js` |
-| Library | `/library/` | `library.js` |
-| Login / Register | `/accounts/login/`, `register/` | `login.js`, `register.js` |
+| 흐름 | 진입 | 주요 API |
+|------|------|----------|
+| 회원가입 | `/accounts/register/` | `POST /api/accounts/register/` → tokens |
+| 로그인 | `/accounts/login/` | `POST /api/accounts/login/` |
+| 탐색 | `/prompts/` | `GET /api/prompts/?search=&category=&...` |
+| 상세 | `/prompts/{id}/` | `GET /api/prompts/{id}/` (+ view_count++) |
+| 작성/수정 | `/prompts/new/`, `.../edit/` | `POST` / `PUT /api/prompts/` |
+| 좋아요/북마크 | 상세 액션 | `POST .../like/`, `.../bookmark/` |
+| 댓글 | 상세 섹션 | `GET/POST .../comments/`, `DELETE /api/comments/{id}/` |
+| 보관함 | `/library/` | `me/bookmarks`, `me/likes`, `me/prompts`, `me/comments` |
+| 로그아웃 | Nav | `POST /api/accounts/logout/` + storage 비우기 |
+
+**유료 프롬프트:** `is_free=false`는 클라이언트 미리보기만; **결제 API 없음** (기술문서 비즈니스 Phase 3로 이연).
+
+---
+
+## 4. 라우트 및 화면
+
+| 화면 | URL | JS |
+|------|-----|-----|
+| 홈 | `/` | — |
+| 탐색 | `/prompts/` | `prompts.js` |
+| 상세 | `/prompts/{id}/` | `prompt-detail.js` |
+| 폼 | `/prompts/new/`, `/prompts/{id}/edit/` | `prompt-form.js` |
+| 보관함 | `/library/` | `library.js` |
+| 로그인/가입 | `/accounts/login/`, `register/` | `login.js`, `register.js` |
 | Admin | `/admin/` | — |
 
 ---
 
-## 5. API surface (Phase 3)
+## 5. API 표면 (Phase 3)
 
 ### Accounts (`/api/accounts/`)
 
-| Method | Path | Notes |
-|--------|------|-------|
-| POST | `register/` | Returns access + refresh |
+| Method | Path | 비고 |
+|--------|------|------|
+| POST | `register/` | access + refresh 반환 |
 | POST | `login/` | SimpleJWT pair |
 | POST | `logout/` | Refresh blacklist |
-| POST | `token/refresh/` | Access renewal |
-| GET/PATCH | `me/` | Profile (no dedicated UI page) |
-| GET | `me/prompts/` | Author’s prompts |
-| GET | `me/bookmarks/` | Bookmarked prompts |
-| GET | `me/likes/` | Liked prompts |
-| GET | `me/comments/` | User’s comments |
+| POST | `token/refresh/` | Access 갱신 |
+| GET/PATCH | `me/` | 프로필 (전용 UI 페이지 없음) |
+| GET | `me/prompts/` | 작성자 프롬프트 |
+| GET | `me/bookmarks/` | 북마크한 프롬프트 |
+| GET | `me/likes/` | 좋아요한 프롬프트 |
+| GET | `me/comments/` | 사용자 댓글 |
 
 ### Prompts (`/api/prompts/`)
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET/POST | `/` | List / create |
-| GET/PUT/PATCH/DELETE | `{id}/` | Detail / update / soft delete |
-| POST | `{id}/files/` | Attachment upload |
-| GET | `categories/`, `tags/` | Taxonomy (read-only viewsets) |
+| Method | Path | 비고 |
+|--------|------|------|
+| GET/POST | `/` | 목록 / 생성 |
+| GET/PUT/PATCH/DELETE | `{id}/` | 상세 / 수정 / soft delete |
+| POST | `{id}/files/` | 첨부 업로드 |
+| GET | `categories/`, `tags/` | 분류 (read-only viewsets) |
 
 ### Interaction (`/api/`)
 
@@ -112,65 +110,65 @@ Detailed English flows: [../USERFLOW.md](../USERFLOW.md).
 
 ---
 
-## 6. Data model (Phase 3 entities)
+## 6. 데이터 모델 (Phase 3 엔티티)
 
-Implemented in code (see [DATA_MODEL_BY_PHASE.md](./DATA_MODEL_BY_PHASE.md) for field-level detail).
+코드 기준 구현 (필드 상세는 [DATA_MODEL_BY_PHASE.md](./DATA_MODEL_BY_PHASE.md)).
 
-| Model | App | Notes |
-|-------|-----|-------|
-| `CustomUser` | accounts | `email` login; `is_deleted` soft delete |
-| `Prompt` | prompts | `content` (not `body`); `ai_model`, pricing, soft delete |
-| `Category`, `Tag` | prompts | Vendor-style categories |
-| `PromptFile` | prompts | Attachments with validation |
-| `Comment` | interaction | `parent` for replies |
-| `Like`, `Bookmark` | interaction | Unique (user, prompt) |
+| Model | App | 비고 |
+|-------|-----|------|
+| `CustomUser` | accounts | `email` 로그인; `is_deleted` soft delete |
+| `Prompt` | prompts | `content` (`body` 아님); `ai_model`, 가격, soft delete |
+| `Category`, `Tag` | prompts | 벤더 스타일 카테고리 |
+| `PromptFile` | prompts | 검증 포함 첨부 |
+| `Comment` | interaction | `parent`로 대댓글 |
+| `Like`, `Bookmark` | interaction | (user, prompt) 유니크 |
 
-**Stub:** `ai_gateway` app registered in `INSTALLED_APPS` but **no models or views** yet.
+**Phase 4 이전:** `ai_gateway`는 `INSTALLED_APPS`에만 등록된 스텁이었음 → Phase 4에서 모델·뷰 추가.
 
 ---
 
-## 7. Infrastructure (Phase 3)
+## 7. 인프라 (Phase 3)
 
-| Component | Implementation |
-|-----------|----------------|
+| 구성요소 | 구현 |
+|----------|------|
 | Database | PostgreSQL (`config.settings.local` / `docker` / `production`) |
-| Local run | `manage.py runserver` + `.env` |
-| Docker | `docker-compose.yml`: **2 services** — `db`, `web` |
+| 로컬 실행 | `manage.py runserver` + `.env` |
+| Docker | `docker-compose.yml`: **2서비스** — `db`, `web` (Phase 4에서 7서비스로 확장) |
 | CI | `.github/workflows/ci.yml` — check, migrate, test |
-| CD | `.github/workflows/cd.yml` — SSH to EC2, `docker compose up` |
-| Vercel | Optional Django deploy (settings auto-switch on `VERCEL=1`); **not** the 7-service Phase 4 stack |
+| CD | `.github/workflows/cd.yml` — SSH EC2, `docker compose up` |
+| Vercel | 선택 Django 배포 (`VERCEL=1` 시 production); **7서비스 Phase 4 스택 아님** |
 
 ---
 
-## 8. Tests and quality
+## 8. 테스트 및 품질
 
-- `python manage.py test` — accounts, prompts, interaction contracts (JWT, soft delete, tags, etc.)
-- Documented in `README.md` and `docs/STAGE3_GAP_ANALYSIS_AND_DELIVERABLES.md`
-
----
-
-## 9. Known limitations (intentional for Phase 3)
-
-| Item | Notes |
-|------|-------|
-| No AI transformation | `ai_gateway` empty |
-| No async task queue | No Celery/Redis in `requirements.txt` |
-| No similarity search | No `PromptEmbedding` |
-| No payment | Paid content UI gate only |
-| Library | 4 tabs, not 5 (no “my transformations”) |
-| Profile UI | API only (`/api/accounts/me/`) |
-| Session not used for pages | By design (JWT-only) |
+- `python manage.py test` — accounts, prompts, interaction (JWT, soft delete, tags 등)
+- 프로젝트 `README.md` 참고
 
 ---
 
-## 10. Handoff to Phase 4
+## 9. 알려진 제한 (Phase 3 의도적 범위)
 
-Phase 3 must **keep working** while Phase 4 adds:
+| 항목 | 비고 |
+|------|------|
+| AI 변환 없음 | Phase 4에서 `ai_gateway` 구현 |
+| 비동기 큐 없음 | Phase 4에서 Celery/Redis |
+| 유사도 검색 없음 | Phase 4에서 `PromptEmbedding` |
+| 결제 없음 | 유료 UI 게이트만 |
+| 보관함 4탭 | 「내 변환」은 Phase 4 |
+| 프로필 UI | API만 (`/api/accounts/me/`) |
+| 페이지에 세션 미사용 | JWT 전용 설계 |
 
-- `prompt_type`, `workflow_steps`, `agent_pattern` on `Prompt`
-- `ai_gateway` models + APIs
-- `tasks` app + Celery
-- `ai_server` FastAPI service
-- Compose services: redis, ai_server, celery_worker, prometheus, grafana
+---
 
-See [PHASE_4_PLANNED.md](./PHASE_4_PLANNED.md) and [OPEN_QUESTIONS.md](./OPEN_QUESTIONS.md).
+## 10. Phase 4로의 인계
+
+Phase 3 기능은 **유지**한 채 Phase 4가 추가합니다:
+
+- `Prompt`에 `prompt_type`, `workflow_steps`, `agent_pattern`
+- `ai_gateway` 모델 + API
+- `tasks` 앱 + Celery
+- `ai_server` FastAPI 서비스
+- Compose: redis, ai_server, celery_worker, prometheus, grafana
+
+[PHASE_4_PLANNED.md](./PHASE_4_PLANNED.md), [DECISIONS.md](./DECISIONS.md) 참고.

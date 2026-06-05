@@ -1,48 +1,48 @@
-# Phase 4 Demo on EC2 (Docker Compose)
+# Phase 4 EC2 시연 (Docker Compose)
 
-Aligned with [DECISIONS.md](./phases/DECISIONS.md), [WBS_SCHEDULE_0602_0608.md](./phases/WBS_SCHEDULE_0602_0608.md), and the 4th evaluation checklist.
+[DECISIONS.md](./phases/DECISIONS.md), [WBS_SCHEDULE_0602_0608.md](./phases/WBS_SCHEDULE_0602_0608.md), 4차 평가 자가정검 체크리스트와 정렬되어 있습니다.
 
-## Stack (7 services)
+## 스택 (7개 서비스)
 
-| Service | URL (on EC2) |
+| Service | URL (EC2 기준) |
 |---------|----------------|
 | Django (daphne) | `http://<EC2_HOST>:8000/` |
 | FastAPI | `http://<EC2_HOST>:8001/docs` |
 | Prometheus | `http://<EC2_HOST>:9090/` |
 | Grafana | `http://<EC2_HOST>:3000/` (admin / admin) |
 
-## Deploy (existing CD or manual)
+## 배포 (기존 CD 또는 수동)
 
 ```bash
 cd /path/to/Promptory
 git pull origin main
-cp .env.example .env   # once — set SECRET_KEY, LLM_PROVIDER=mock
+cp .env.example .env   # 최초 1회 — SECRET_KEY, LLM_PROVIDER=mock 설정
 docker compose up -d --build
 docker compose exec web python manage.py migrate --noinput
 ```
 
-## HF demo (evaluation only)
+## HF 시연 (평가용만)
 
 ```bash
-# In .env on EC2
+# EC2 .env
 LLM_PROVIDER=huggingface
 ```
 
-Rebuild `ai_server` with HF dependencies (`ai_server/requirements-hf.txt` if added) and allow 10–15 min first model download. For rehearsal use **mock** (default).
+HF 의존성이 포함된 `ai_server` 이미지로 재빌드(`ai_server/requirements-hf.txt` 추가 시) 후, 첫 모델 다운로드에 10~15분 소요될 수 있습니다. 리허설은 **mock**(기본값) 사용을 권장합니다.
 
-## 21-step demo script (short)
+## 21단계 시연 스크립트 (요약)
 
-1. Open home → explore prompts (3차 유지)
-2. Login as author
-3. Open own prompt detail → **에이전트로 변환하기**
-4. Show PENDING → SUCCESS (polling or WebSocket)
-5. Inline 4-step agent result + confidence
-6. Library → **내 변환** tab (latest per prompt)
-7. `GET /api/tasks/{id}/status/` in browser devtools or Postman
-8. FastAPI `/docs` → `/transform` mock call
-9. Prometheus targets UP, Grafana dashboard
-10. Admin → Task / AgentTransformation rows
+1. 홈 → 프롬프트 탐색 (3차 유지)
+2. 작성자 계정으로 로그인
+3. 본인 프롬프트 상세 → **에이전트로 변환하기**
+4. PENDING → SUCCESS 표시 (폴링 또는 WebSocket)
+5. 인라인 4단계 에이전트 결과 + confidence
+6. 보관함 → **내 변환** 탭 (프롬프트당 최신 1건)
+7. 브라우저 개발자 도구 또는 Postman에서 `GET /api/tasks/{id}/status/`
+8. FastAPI `/docs` → `/transform` mock 호출
+9. Prometheus targets UP, Grafana 대시보드
+10. Admin → Task / AgentTransformation 행 확인
 
-## Security groups
+## 보안 그룹
 
-Open: **8000**, **8001**, **9090**, **3000** (or tunnel for demo).
+개방 포트: **8000**, **8001**, **9090**, **3000** (또는 시연 시 SSH 터널 사용).

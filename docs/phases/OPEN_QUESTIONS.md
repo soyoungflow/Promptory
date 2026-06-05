@@ -1,11 +1,11 @@
-# Open Questions — Resolved
+# 미결 질문 — 해결 완료
 
-All decisions are locked in **[DECISIONS.md](./DECISIONS.md)** (2026-05-27).
+모든 결정은 **[DECISIONS.md](./DECISIONS.md)** (2026-05-27)에 확정되어 있습니다.
 
-Implementation and Phase 4 docs follow:
+구현 및 Phase 4 문서는 다음을 따릅니다:
 
 - `docs/4차 발표가이드 및 평가기준.md`
 - `docs/자가정검 체크리스트(개인프로젝트).md`
-- User answers Q1–Q12 (EC2 Compose, inline agent UI, etc.)
+- 사용자 답변 Q1~Q12 (EC2 Compose, 인라인 에이전트 UI 등)
 
-No open blockers for development.
+개발을 막는 미결 항목은 없습니다.

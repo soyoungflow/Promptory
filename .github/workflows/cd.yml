@@ -6,39 +6,90 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Test SSH and app directory
+      - name: Deploy to EC2 (Docker Compose)
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
+          port: ${{ secrets.EC2_PORT || '22' }}
+          command_timeout: 25m
+          script_stop: true
           script: |
-            set -e
+            set -euo pipefail
 
             APP_DIR="${{ secrets.EC2_APP_DIR }}"
-            APP_DIR="$(echo "$APP_DIR" | xargs)"
+            APP_DIR="${APP_DIR#"${APP_DIR%%[![:space:]]*}"}"
+            APP_DIR="${APP_DIR%"${APP_DIR##*[![:space:]]}"}"
 
-            echo "SSH connected"
-            echo "Current user:"
-            whoami
+            if [ -z "$APP_DIR" ]; then
+              echo "EC2_APP_DIR secret is empty"
+              exit 1
+            fi
 
-            echo "Current directory:"
-            pwd
-
-            echo "App directory:"
-            echo "$APP_DIR"
-
-            echo "Move to app directory"
             cd "$APP_DIR"
+            TRIGGER_SHA="${{ github.sha }}"
 
-            echo "Now in:"
+            echo "=== [1/7] SSH connected ==="
+            whoami
             pwd
 
-            echo "Files:"
-            ls -al
+            echo "=== [2/7] Version check (before sync) ==="
+            git fetch origin main
+            LOCAL_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'none')"
+            REMOTE_SHA="$(git rev-parse origin/main)"
+            echo "Local  HEAD:  $LOCAL_SHA"
+            echo "Remote main:  $REMOTE_SHA"
+            echo "GitHub push:  $TRIGGER_SHA"
+
+            echo "=== [3/7] Sync latest main ==="
+            git checkout main
+            git reset --hard origin/main
+            DEPLOYED_SHA="$(git rev-parse HEAD)"
+            git log -1 --oneline
+
+            if [ "$DEPLOYED_SHA" != "$REMOTE_SHA" ]; then
+              echo "ERROR: deployed SHA does not match origin/main"
+              exit 1
+            fi
+
+            if [ "$DEPLOYED_SHA" != "$TRIGGER_SHA" ]; then
+              echo "WARN: trigger SHA ($TRIGGER_SHA) differs from deployed SHA ($DEPLOYED_SHA)"
+              echo "      (push와 deploy 사이에 main이 한 번 더 갱신됐을 수 있음)"
+            else
+              echo "OK: deployed SHA matches GitHub push SHA"
+            fi
+
+            echo "=== [4/7] Ensure .env exists ==="
+            if [ ! -f .env ]; then
+              echo ".env not found in $APP_DIR"
+              exit 1
+            fi
+
+            echo "=== [5/7] Rebuild and restart Docker Compose ==="
+            docker compose pull || true
+            docker compose up -d --build
+
+            echo "=== [6/7] Migrate database ==="
+            docker compose exec -T web python manage.py migrate --noinput
+
+            echo "=== [7/7] Post-deploy health check ==="
+            docker compose ps
+            curl -fsS --retry 5 --retry-delay 3 http://127.0.0.1:8000/ >/dev/null
+            curl -fsS --retry 5 --retry-delay 3 http://127.0.0.1:8001/health
+
+            docker image prune -f || true
+
+            echo "Deploy complete"
+            echo "Deployed SHA: $DEPLOYED_SHA"
+            echo "$(git log -1 --format='%h %ci %s')"
