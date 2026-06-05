@@ -1,25 +1,14 @@
-name: CD
+script: |
+  APP_DIR="${{ secrets.EC2_APP_DIR }}"
+  APP_DIR="$(echo "$APP_DIR" | xargs)"
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  echo "SSH connected"
+  echo "Current user:"
+  whoami
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  echo "App directory:"
+  echo "$APP_DIR"
 
-    steps:
-      - name: Test SSH connection
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          script: |
-            echo "SSH connected"
-            whoami
-            pwd
-            ls -al
+  cd "$APP_DIR"
+  pwd
+  ls -al
