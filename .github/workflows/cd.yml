@@ -80,13 +80,46 @@ jobs:
             docker compose pull || true
             docker compose up -d --build
 
-            echo "=== [6/7] Migrate database ==="
+            # web 컨테이너는 startup 시 migrate → daphne 순으로 기동함 (docker-compose.yml command 참고).
+            # compose up 직후에는 (health: starting) 상태이므로, healthy 될 때까지 기다린 뒤 HTTP 체크한다.
+            wait_for_healthy() {
+              local service="$1"
+              local timeout="${2:-180}"
+              local elapsed=0
+              local interval=3
+              echo "Waiting for ${service} to become healthy (timeout=${timeout}s)..."
+              while [ "$elapsed" -lt "$timeout" ]; do
+                local cid status
+                cid="$(docker compose ps -q "$service" 2>/dev/null || true)"
+                if [ -z "$cid" ]; then
+                  echo "${service}: container not found yet"
+                else
+                  status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" 2>/dev/null || echo "unknown")"
+                  echo "${service}: ${status} (${elapsed}s)"
+                  if [ "$status" = "healthy" ]; then
+                    return 0
+                  fi
+                fi
+                sleep "$interval"
+                elapsed=$((elapsed + interval))
+              done
+              echo "ERROR: ${service} did not become healthy in time"
+              docker compose ps
+              docker compose logs "$service" --tail 80 || true
+              return 1
+            }
+
+            echo "=== [6/7] Wait for core services + migrate ==="
+            wait_for_healthy ai_server 180
+            wait_for_healthy web 180
             docker compose exec -T web python manage.py migrate --noinput
 
-            echo "=== [7/7] Post-deploy health check ==="
+            echo "=== [7/7] Post-deploy smoke check ==="
             docker compose ps
-            curl -fsS --retry 5 --retry-delay 3 http://127.0.0.1:8000/ >/dev/null
-            curl -fsS --retry 5 --retry-delay 3 http://127.0.0.1:8001/health
+            curl -fsS --retry 8 --retry-connrefused --retry-all-errors --retry-delay 3 \
+              http://127.0.0.1:8000/ >/dev/null
+            curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
+              http://127.0.0.1:8001/health
 
             docker image prune -f || true
 
