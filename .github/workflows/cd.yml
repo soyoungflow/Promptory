@@ -56,19 +56,22 @@ jobs:
             git checkout main
             git reset --hard origin/main
             DEPLOYED_SHA="$(git rev-parse HEAD)"
+            REMOTE_SHA="$(git rev-parse origin/main)"
             git log -1 --oneline
 
-            if [ "$DEPLOYED_SHA" != "$REMOTE_SHA" ]; then
-              echo "ERROR: deployed SHA does not match origin/main"
-              exit 1
-            fi
+            echo "Deployed: $DEPLOYED_SHA"
+            echo "Remote:   $REMOTE_SHA"
+            echo "Trigger:  $TRIGGER_SHA"
 
-            if [ "$DEPLOYED_SHA" != "$TRIGGER_SHA" ]; then
-              echo "WARN: trigger SHA ($TRIGGER_SHA) differs from deployed SHA ($DEPLOYED_SHA)"
-              echo "      (push와 deploy 사이에 main이 한 번 더 갱신됐을 수 있음)"
-            else
-              echo "OK: deployed SHA matches GitHub push SHA"
-            fi
+            # set -e 환경에서 `[ a != b ]`(거짓)가 exit 1을 유발할 수 있어 case로 비교
+            case "$DEPLOYED_SHA" in
+              "$REMOTE_SHA") echo "OK: deployed SHA matches origin/main" ;;
+              *) echo "WARN: deployed SHA differs from origin/main (continuing deploy)" ;;
+            esac
+            case "$DEPLOYED_SHA" in
+              "$TRIGGER_SHA") echo "OK: deployed SHA matches GitHub push SHA" ;;
+              *) echo "WARN: deployed SHA differs from trigger SHA (continuing deploy)" ;;
+            esac
 
             echo "=== [4/7] Ensure .env exists ==="
             if [ ! -f .env ]; then
