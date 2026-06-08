@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Deploy to EC2 (Docker Compose)
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
@@ -112,6 +112,7 @@ jobs:
             echo "=== [6/7] Wait for core services + migrate ==="
             wait_for_healthy ai_server 180
             wait_for_healthy web 180
+            wait_for_healthy nginx 120
             docker compose exec -T web python manage.py migrate --noinput
 
             echo "=== [7/7] Post-deploy smoke check ==="
@@ -119,11 +120,11 @@ jobs:
             curl -fsS --retry 8 --retry-connrefused --retry-all-errors --retry-delay 3 \
               http://127.0.0.1/ >/dev/null
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
-              http://127.0.0.1/ai/health
+              http://127.0.0.1/ai/health >/dev/null
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
               http://127.0.0.1/static/css/main.css >/dev/null
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
-              http://127.0.0.1/grafana/api/health | grep -q '"database":"ok"'
+              http://127.0.0.1/grafana/api/health | grep -qE '"database"[[:space:]]*:[[:space:]]*"ok"'
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
               http://127.0.0.1/prometheus/prometheus/-/healthy | grep -q 'Healthy'
 
