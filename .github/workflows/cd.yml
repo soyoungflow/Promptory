@@ -117,9 +117,15 @@ jobs:
             echo "=== [7/7] Post-deploy smoke check ==="
             docker compose ps
             curl -fsS --retry 8 --retry-connrefused --retry-all-errors --retry-delay 3 \
-              http://127.0.0.1:8000/ >/dev/null
+              http://127.0.0.1/ >/dev/null
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
-              http://127.0.0.1:8001/health
+              http://127.0.0.1/ai/health
+            curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
+              http://127.0.0.1/static/css/main.css >/dev/null
+            curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
+              http://127.0.0.1/grafana/api/health | grep -q '"database":"ok"'
+            curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
+              http://127.0.0.1/prometheus/prometheus/-/healthy | grep -q 'Healthy'
 
             docker image prune -f || true
 

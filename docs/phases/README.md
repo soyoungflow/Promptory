@@ -43,6 +43,7 @@
 | [OPEN_QUESTIONS.md](./OPEN_QUESTIONS.md) | 해결된 결정으로의 안내 |
 | [WBS_SCHEDULE_0602_0608.md](./WBS_SCHEDULE_0602_0608.md) | **6/2~6/8 일별 계획** (검증, 시연, 증빙) |
 | [../DEMO_EC2.md](../DEMO_EC2.md) | EC2 배포 URL 및 짧은 시연 스크립트 |
+| [../NGINX_REVERSE_PROXY.md](../NGINX_REVERSE_PROXY.md) | nginx 리버스 프록시 (단일 포트 80) |
 
 ---
 
