@@ -63,15 +63,18 @@ jobs:
             echo "Remote:   $REMOTE_SHA"
             echo "Trigger:  $TRIGGER_SHA"
 
-            # set -e 환경에서 `[ a != b ]`(거짓)가 exit 1을 유발할 수 있어 case로 비교
-            case "$DEPLOYED_SHA" in
-              "$REMOTE_SHA") echo "OK: deployed SHA matches origin/main" ;;
-              *) echo "WARN: deployed SHA differs from origin/main (continuing deploy)" ;;
-            esac
-            case "$DEPLOYED_SHA" in
-              "$TRIGGER_SHA") echo "OK: deployed SHA matches GitHub push SHA" ;;
-              *) echo "WARN: deployed SHA differs from trigger SHA (continuing deploy)" ;;
-            esac
+            # SHA 체크는 "검증/경고용"만 사용 (배포 흐름을 막지 않음)
+            if [ "$DEPLOYED_SHA" = "$REMOTE_SHA" ]; then
+              echo "OK: deployed SHA matches origin/main"
+            else
+              echo "WARN: deployed SHA differs from origin/main (continuing deploy)"
+            fi
+
+            if [ "$DEPLOYED_SHA" = "$TRIGGER_SHA" ]; then
+              echo "OK: deployed SHA matches GitHub push SHA"
+            else
+              echo "WARN: deployed SHA differs from trigger SHA (continuing deploy)"
+            fi
 
             echo "=== [4/7] Ensure .env exists ==="
             if [ ! -f .env ]; then
