@@ -87,7 +87,9 @@ jobs:
             REDIS_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' promptory-redis-1 2>/dev/null || true)
             AI_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' promptory-ai_server-1 2>/dev/null || true)
             WEB_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' promptory-web-1 2>/dev/null || true)
-            if [ "$DB_STATUS" = "healthy" ] && [ "$REDIS_STATUS" = "healthy" ] && [ "$AI_STATUS" = "healthy" ] && [ "$WEB_STATUS" = "healthy" ]; then
+            NGINX_STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' promptory-nginx-1 2>/dev/null || true)
+            echo "db=$DB_STATUS redis=$REDIS_STATUS ai=$AI_STATUS web=$WEB_STATUS nginx=$NGINX_STATUS"
+            if [ "$DB_STATUS" = "healthy" ] && [ "$REDIS_STATUS" = "healthy" ] && [ "$AI_STATUS" = "healthy" ] && [ "$WEB_STATUS" = "healthy" ] && [ "$NGINX_STATUS" = "healthy" ]; then
               echo "Compose services are ready."
               exit 0
             fi
@@ -98,8 +100,11 @@ jobs:
           docker compose logs
           exit 1
 
-      - name: Smoke check HTTP endpoint
-        run: curl -fsS --retry 5 --retry-connrefused --retry-delay 2 http://127.0.0.1:8000/
+      - name: Smoke check HTTP endpoint (nginx proxy)
+        run: |
+          curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 2 http://127.0.0.1/
+          curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 2 http://127.0.0.1/ai/health
+          curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 2 http://127.0.0.1/static/css/main.css
 
       - name: Show compose status
         if: always()
