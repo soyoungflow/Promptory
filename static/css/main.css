@@ -43,12 +43,16 @@ a:hover { text-decoration: none; }
 .nav-link, .nav-links > span > a { padding: 6px 12px; border-radius: 6px; font-size: 13px; color: var(--text-muted); }
 .nav-link:hover, .nav-link.active, .nav-links > span > a:hover { background: var(--accent-soft); color: var(--text); }
 .nav-link.active { font-weight: 600; }
-.nav-actions { display: flex; align-items: center; gap: 12px; }
-.nav-search { display: flex; align-items: center; gap: 8px; width: clamp(180px, 24vw, 260px); padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
-.nav-search-icon { color: var(--text-tertiary); font-size: 14px; line-height: 1; }
-.nav-search input { width: 100%; padding: 0; border: 0; box-shadow: none; background: transparent; font-size: 13px; color: var(--text); }
-.nav-search input:focus { border: 0; box-shadow: none; }
-.nav-search-key { margin-left: auto; padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; color: var(--text-tertiary); background: var(--surface); }
+.nav-actions { display: flex; align-items: center; gap: 8px; }
+.nav-link-cta {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.nav-link-cta:hover,
+.nav-link-cta.active {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
 .nav-user { font-size: 13px; color: var(--text-muted); }
 
 .main-container { max-width: 1100px; margin: 0 auto; padding: 32px; min-height: 72vh; }
@@ -472,9 +476,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-hover); b
   .hero-card.muted { transform: none; }
   .nav-inner { height: auto; min-height: 52px; padding: 10px 20px; align-items: flex-start; gap: 10px; flex-direction: column; }
   .nav-left, .nav-actions { width: 100%; justify-content: space-between; }
-  .nav-search { width: min(100%, 320px); }
   .explore-layout { display: block; }
   .sidebar { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
   .sidebar-list { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
   .main-container, .list-page { padding: 20px; }
 }
+
+.blueprint-page { max-width: 720px; margin: 0 auto; }
+.blueprint-header { margin-bottom: 28px; }
+.blueprint-header h1 { margin: 8px 0 12px; }
+.blueprint-form .form-group { margin-bottom: 18px; }
+.blueprint-processing { text-align: center; padding: 32px 0; }
+.blueprint-publish-panel {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.blueprint-publish-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.required { color: #A32D2D; }

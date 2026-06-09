@@ -4,7 +4,7 @@ import structlog
 from celery import shared_task
 from django.utils import timezone
 
-from ai_gateway.models import AgentTransformation, PromptEmbedding
+from ai_gateway.models import AgentTransformation, BlueprintDesign, PromptEmbedding
 from ai_gateway.services.llm_client import LLMClient
 from monitoring.metrics import agent_transformation_total, model_inference_duration_seconds
 from prompts.models import Prompt
@@ -69,6 +69,11 @@ def transform_prompt(self, task_id: str, prompt_id: int):
             result_id=transformation.id,
             error_message='',
         )
+        design = BlueprintDesign.objects.filter(source_prompt_id=prompt_id).first()
+        if design:
+            design.transformation = transformation
+            design.status = 'success'
+            design.save(update_fields=['transformation', 'status', 'updated_at'])
         logger.info('transform_success', task_id=str(task_id), result_id=transformation.id)
         return transformation.id
 
@@ -82,6 +87,10 @@ def transform_prompt(self, task_id: str, prompt_id: int):
             raise self.retry(exc=exc, countdown=2 ** self.request.retries)
 
         _set_status(task, 'FAIL', finished_at=timezone.now())
+        BlueprintDesign.objects.filter(
+            source_prompt_id=prompt_id,
+            status='processing',
+        ).update(status='fail')
         raise
 
 

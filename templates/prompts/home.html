@@ -1,55 +1,55 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Promptory — AI 업무 자동화 설계서{% endblock %}
+{% block title %}Promptory — 프롬프트 마켓 · AI 설계서{% endblock %}
 
 {% block content %}
 <section class="hero-section">
   <div class="hero-copy">
     <span class="eyebrow">Promptory</span>
-    <h1>프롬프트를 <strong>AI 업무 자동화 설계서</strong>로</h1>
-    <p>Promptory는 단일 프롬프트를 <strong>5-Layer Agent Blueprint</strong>로 자동 변환합니다.</p>
-    <p>자동화 단계 · 참고 자료 · 연결 방식 · 운영 가이드 · 완료 판단 기준 — 모두 한 패키지에.</p>
+    <h1>프롬프트 <strong>마켓</strong> + AI <strong>설계서</strong> 작성</h1>
+    <p>다른 사람의 프롬프트·레시피를 탐색하고, 내 업무는 AI가 <strong>5-Layer Agent Blueprint</strong> 설계서로 자동 설계해 드립니다.</p>
+    <p>등록(공유)과 설계(생성)를 나눠 — 탐색은 마켓, 자동화 설계는 전용 도구에서.</p>
     <div class="hero-actions">
-      <a href="{% url 'prompt-list-page' %}" class="btn btn-primary">설계서 둘러보기</a>
-      <a href="{% url 'prompt-create-page' %}" class="btn btn-secondary auth-only" style="display:none;">내 프롬프트 변환하기</a>
+      <a href="{% url 'blueprint-design-page' %}" class="btn btn-primary">설계서 만들기</a>
+      <a href="{% url 'prompt-list-page' %}" class="btn btn-secondary">프롬프트·레시피 탐색</a>
+      <a href="{% url 'prompt-create-page' %}" class="btn btn-secondary auth-only" style="display:none;">콘텐츠 등록</a>
     </div>
   </div>
   <div class="hero-panel">
     <div class="hero-card">
-      <span class="tag tag-free">무료</span>
-      <h3>Python 코드 리뷰 어시스턴트</h3>
-      <p>버그 탐지, 성능 개선, 스타일 체크까지 한 번에 확인하는 개발자 필수 프롬프트.</p>
+      <span class="tag tag-free">설계</span>
+      <h3>주간 마케팅 리포트 자동화</h3>
+      <p>GA4·광고 데이터 수집 → 요약 → 슬랙 발송까지 단계·도구·검증 기준이 담긴 설계서.</p>
       <div class="card-tags">
-        <span class="tag">#코딩</span>
-        <span class="tag">#Python</span>
-        <span class="tag">#리뷰</span>
+        <span class="tag">#마케팅</span>
+        <span class="tag">#자동화</span>
       </div>
     </div>
     <div class="hero-card muted">
-      <span class="tag tag-paid">₩3,000</span>
+      <span class="tag tag-paid">마켓</span>
       <h3>SEO 블로그 최적화 프롬프트</h3>
-      <p>블로그 글 하나로 검색 유입을 2배 늘린 프롬프트.</p>
+      <p>커뮤니티에 공유된 단일 프롬프트 — 바로 복사해 사용.</p>
     </div>
   </div>
 </section>
 
 <section class="home-section">
   <div class="section-heading">
-    <h2>프롬프트 · 설계서 · 에이전트 레시피</h2>
-    <p>단일 프롬프트뿐 아니라 5-Layer Blueprint와 워크플로·패턴·도구 구성을 공유한 레시피도 탐색할 수 있습니다.</p>
+    <h2>두 가지 사용 방식</h2>
+    <p>탐색·등록은 마켓, AI 설계는 별도 플로우로 분리했습니다.</p>
   </div>
   <div class="feature-grid">
+    <a href="{% url 'blueprint-design-page' %}" class="feature-card">
+      <strong>설계서 만들기</strong>
+      <span>업무 설명 → AI가 5-Layer Blueprint 작성</span>
+    </a>
     <a href="{% url 'prompt-list-page' %}?prompt_type=agent_recipe" class="feature-card">
       <strong>에이전트 레시피</strong>
-      <span>자동화 단계·하네스·도구 체인 공유</span>
+      <span>자동화 단계·도구 체인 공유</span>
     </a>
-    <a href="{% url 'prompt-list-page' %}?ordering=-created_at" class="feature-card">
-      <strong>최신 설계서</strong>
-      <span>방금 공유된 콘텐츠 탐색</span>
-    </a>
-    <a href="{% url 'prompt-list-page' %}?ordering=-view_count" class="feature-card">
-      <strong>인기 프롬프트</strong>
-      <span>조회수 높은 콘텐츠</span>
+    <a href="{% url 'prompt-create-page' %}" class="feature-card auth-only" style="display:none;">
+      <strong>콘텐츠 등록</strong>
+      <span>프롬프트·레시피를 마켓에 공유</span>
     </a>
   </div>
 </section>

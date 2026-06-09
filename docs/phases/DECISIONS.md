@@ -18,6 +18,7 @@
 | Q12 | phase 문서는 **3·4차만** 다룸. |
 | Q13 | **Context Policy + Harness Policy** 풀세트 — 변환 단계마다 자동 생성·DB 저장·상세 UI 표시. 정책 **실제 실행**(요약·벡터 query·재시도)은 출시 후 로드맵. |
 | Q14 | **5-Layer Agent Blueprint** + 서비스 리포지셔닝 — Knowledge References·Verification Criteria 추가, UI 한국어 번역, 「AI 업무 자동화 설계서」 카피. |
+| Q15 | **등록 vs 설계 분리** — 레시피 상세 인라인 변환 제거; `POST /api/blueprints/design/` + `/blueprints/new/` 위저드; 결과는 `BlueprintDesign`→`AgentTransformation`, 선택적 `publish-recipe`로 레시피 초안. |
 
 ## Q13. Context Policy + Harness Policy 메타데이터 (Option 3)
 

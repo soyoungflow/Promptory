@@ -26,6 +26,11 @@ def prompt_detail(request, pk):
     return render(request, 'prompts/detail.html', {'prompt_id': pk})
 
 
+def blueprint_design(request, pk=None):
+    """GET /blueprints/new/ 또는 /blueprints/<pk>/ — 설계서 만들기 위저드."""
+    return render(request, 'prompts/blueprint_design.html', {'design_id': pk or ''})
+
+
 def prompt_create(request):
     """GET /prompts/new/ — 프롬프트 등록 페이지.
 

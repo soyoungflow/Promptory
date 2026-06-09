@@ -13,6 +13,7 @@ class Task(models.Model):
     ]
     TASK_TYPE_CHOICES = [
         ('transform', '에이전트 변환'),
+        ('blueprint_design', '설계서 만들기'),
         ('embed', '임베딩'),
     ]
 

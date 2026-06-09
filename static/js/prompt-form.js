@@ -405,14 +405,110 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTags();
   });
 
+  const PATTERN_MAP = {
+    Sequential: 'sequential',
+    ReAct: 'react',
+    Reflection: 'reflection',
+    MultiAgent: 'multi_agent',
+  };
+  const BLUEPRINT_PREFILL_KEY = 'promptory_blueprint_prefill';
+
+  function readBlueprintPrefillCache(blueprintId) {
+    try {
+      const raw = sessionStorage.getItem(BLUEPRINT_PREFILL_KEY);
+      if (!raw) return null;
+      const cached = JSON.parse(raw);
+      if (String(cached.design_id) !== String(blueprintId)) return null;
+      if (Date.now() - Number(cached.saved_at || 0) > 30 * 60 * 1000) return null;
+      return cached;
+    } catch {
+      return null;
+    }
+  }
+
+  function applyBlueprintPrefill(prefill) {
+    const agent = prefill.transformation;
+    if (!agent) return false;
+    const steps = agent.decomposed_steps || [];
+
+    if (promptTypeEl) promptTypeEl.value = 'agent_recipe';
+    toggleAgentRecipeFields();
+
+    if (titleEl) titleEl.value = prefill.title || '';
+    if (descriptionEl) {
+      descriptionEl.value = prefill.brief || '';
+      if (prefill.extra_context) {
+        descriptionEl.value += `\n\n[추가 맥락]\n${prefill.extra_context}`;
+      }
+    }
+    if (contentEl) contentEl.value = prefill.brief || '';
+    if (recipeCategoryEl && prefill.recipe_category_name) {
+      recipeCategoryEl.value = prefill.recipe_category_name;
+    }
+    if (agentPatternEl) {
+      agentPatternEl.value = PATTERN_MAP[agent.overall_pattern] || 'sequential';
+    }
+
+    state.workflowSteps = steps.length
+      ? steps.map((s, i) => ({
+          name: s.name || '',
+          system_message: s.system_message || '',
+          tool: s.tool || '',
+          code: s.code || '',
+          step: s.step || i + 1,
+        }))
+      : [DEFAULT_WORKFLOW_STEP()];
+    renderWorkflowSteps();
+    return true;
+  }
+
+  async function loadFromBlueprint(blueprintId) {
+    if (isEdit) return false;
+    if (!Auth.isLoggedIn()) {
+      showTopError('설계서 초안을 불러오려면 로그인이 필요합니다.');
+      return false;
+    }
+
+    const cached = readBlueprintPrefillCache(blueprintId);
+    if (cached && applyBlueprintPrefill(cached)) {
+      sessionStorage.removeItem(BLUEPRINT_PREFILL_KEY);
+      return true;
+    }
+
+    const { res, data } = await Api.get(`/blueprints/design/${blueprintId}/`);
+    if (!res.ok || data.status !== 'success' || !data.transformation) {
+      showTopError(data?.detail || '설계서 초안을 불러오지 못했습니다.');
+      return false;
+    }
+
+    applyBlueprintPrefill({
+      title: data.title,
+      brief: data.brief,
+      extra_context: data.extra_context,
+      recipe_category_name: '',
+      transformation: data.transformation,
+    });
+    return true;
+  }
+
   (async () => {
     try {
+      const fromBlueprint = new URLSearchParams(location.search).get('from_blueprint');
       await loadCategories();
       await loadRecipeCategorySuggestions();
       await loadPromptForEdit();
       togglePrice();
-      toggleAgentRecipeFields();
-      if (!isEdit) renderWorkflowSteps();
+
+      if (fromBlueprint && !isEdit) {
+        const loaded = await loadFromBlueprint(fromBlueprint);
+        if (!loaded) {
+          toggleAgentRecipeFields();
+          renderWorkflowSteps();
+        }
+      } else {
+        toggleAgentRecipeFields();
+        if (!isEdit) renderWorkflowSteps();
+      }
     } catch (err) {
       showTopError(err.message || '폼 초기화에 실패했습니다.');
     }

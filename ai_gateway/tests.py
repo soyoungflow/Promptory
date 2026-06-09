@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from ai_gateway.models import AgentTransformation, PromptEmbedding
+from ai_gateway.models import AgentTransformation, BlueprintDesign, PromptEmbedding
 from prompts.models import Category, Prompt
 from tasks.models import Task
 
@@ -241,3 +241,95 @@ class MyTransformationsApiTests(APITestCase):
         self.assertEqual(response.data[0]['prompt_id'], self.prompt.id)
         self.assertEqual(response.data[0]['transformation_id'], self.transformation.id)
         self.assertIsNotNone(response.data[0]['task_id'])
+
+
+class BlueprintDesignApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='design@example.com', username='designer', password='StrongPass123!',
+        )
+        self.category = Category.objects.create(name='개발', slug='dev')
+        self.prompt = Prompt.objects.create(
+            user=self.user,
+            category=self.category,
+            title='[설계 초안] 테스트',
+            content='자동화 요청 본문입니다.',
+            ai_model='other',
+            is_blueprint_draft=True,
+        )
+        self.transformation = AgentTransformation.objects.create(
+            prompt=self.prompt,
+            decomposed_steps=MOCK_TRANSFORM['decomposed_steps'],
+            suggested_tools=MOCK_TRANSFORM['suggested_tools'],
+            system_messages=MOCK_TRANSFORM['system_messages'],
+            confidence_score=0.88,
+            model_used='mock',
+            overall_pattern='Sequential',
+        )
+        self.design = BlueprintDesign.objects.create(
+            user=self.user,
+            title='테스트 설계',
+            brief='주간 리포트 자동화가 필요합니다.',
+            status='success',
+            source_prompt=self.prompt,
+            transformation=self.transformation,
+        )
+
+    @patch('ai_gateway.blueprint_views.transform_prompt.delay')
+    def test_create_blueprint_design(self, mock_delay):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post('/api/blueprints/design/', {
+            'brief': '매일 슬랙에 요약을 보내는 자동화를 만들고 싶습니다.',
+            'extra_context': 'GA4 사용 중',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, response.data)
+        self.assertIn('id', response.data)
+        self.assertIn('task_id', response.data)
+        self.assertTrue(BlueprintDesign.objects.filter(user=self.user).exists())
+        mock_delay.assert_called_once()
+
+    def test_anonymous_cannot_create_design(self):
+        response = self.client.post('/api/blueprints/design/', {
+            'brief': '로그인 없이는 안 됩니다.',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_own_design_detail(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(f'/api/blueprints/design/{self.design.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], '테스트 설계')
+        self.assertEqual(len(response.data['transformation']['decomposed_steps']), 2)
+
+    def test_design_syncs_when_task_done_but_status_stale(self):
+        self.design.status = 'processing'
+        self.design.transformation = None
+        self.design.save(update_fields=['status', 'transformation'])
+        Task.objects.create(
+            task_id=uuid.uuid4(),
+            task_type='blueprint_design',
+            status='SUCCESS',
+            prompt=self.prompt,
+            user=self.user,
+            result_id=self.transformation.id,
+        )
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(f'/api/blueprints/design/{self.design.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['transformation']['id'], self.transformation.id)
+
+    def test_publish_recipe_from_design(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            f'/api/blueprints/design/{self.design.id}/publish-recipe/',
+            {'recipe_category_name': '마케팅'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        recipe = Prompt.objects.get(pk=response.data['recipe_id'])
+        self.assertEqual(recipe.prompt_type, 'agent_recipe')
+        self.assertEqual(recipe.agent_pattern, 'sequential')
+        self.assertEqual(len(recipe.workflow_steps), 2)
+        self.design.refresh_from_db()
+        self.assertEqual(self.design.recipe_id, recipe.id)

@@ -44,7 +44,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     def prompts(self, request, slug=None):
         """GET /api/tags/{slug}/prompts/ — 태그별 프롬프트"""
         tag = self.get_object()
-        qs = Prompt.objects.filter(tags=tag, is_deleted=False)
+        qs = Prompt.objects.filter(tags=tag, is_deleted=False, is_blueprint_draft=False)
         serializer = PromptListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -79,7 +79,7 @@ class PromptViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Soft Delete 된 항목 제외
-        return Prompt.objects.filter(is_deleted=False).select_related(
+        return Prompt.objects.filter(is_deleted=False, is_blueprint_draft=False).select_related(
             'user', 'category', 'recipe_category',
         ).prefetch_related('tags', 'files', 'likes', 'bookmarks')
 

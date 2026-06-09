@@ -54,7 +54,9 @@ class MyPromptListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        qs = Prompt.objects.filter(user=request.user, is_deleted=False).select_related(
+        qs = Prompt.objects.filter(
+            user=request.user, is_deleted=False, is_blueprint_draft=False,
+        ).select_related(
             'user', 'category'
         ).prefetch_related('tags', 'likes', 'bookmarks')
         serializer = PromptListSerializer(qs, many=True, context={'request': request})
@@ -66,7 +68,9 @@ class MyTransformationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        prompts = Prompt.objects.filter(user=request.user, is_deleted=False).order_by('-created_at')
+        prompts = Prompt.objects.filter(
+            user=request.user, is_deleted=False, is_blueprint_draft=False,
+        ).order_by('-created_at')
         rows = []
         for prompt in prompts:
             latest = AgentTransformation.objects.filter(prompt=prompt).order_by('-created_at').first()

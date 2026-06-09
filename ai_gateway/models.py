@@ -1,4 +1,56 @@
+from django.conf import settings
 from django.db import models
+
+
+class BlueprintDesign(models.Model):
+    """설계서 만들기 세션 — 기존 프롬프트 등록과 분리된 생성 플로우."""
+
+    STATUS_CHOICES = [
+        ('pending', '대기'),
+        ('processing', '처리 중'),
+        ('success', '완료'),
+        ('fail', '실패'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='blueprint_designs', verbose_name='작성자',
+    )
+    title = models.CharField(max_length=200, blank=True, default='', verbose_name='제목')
+    brief = models.TextField(verbose_name='자동화 요청')
+    extra_context = models.TextField(blank=True, default='', verbose_name='추가 맥락')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True,
+    )
+    source_prompt = models.OneToOneField(
+        'prompts.Prompt', on_delete=models.CASCADE,
+        related_name='blueprint_design', verbose_name='내부 초안 프롬프트',
+    )
+    transformation = models.OneToOneField(
+        'AgentTransformation', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='blueprint_design',
+        verbose_name='변환 결과',
+    )
+    recipe = models.ForeignKey(
+        'prompts.Prompt', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='from_blueprint_designs',
+        verbose_name='등록된 레시피',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = '설계서 만들기'
+        verbose_name_plural = '설계서 만들기 목록'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+
+    def __str__(self):
+        label = self.title or self.brief[:40]
+        return f'{self.user_id} — {label}'
 
 
 class AgentTransformation(models.Model):

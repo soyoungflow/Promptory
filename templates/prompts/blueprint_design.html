@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}설계서 만들기 — Promptory{% endblock %}
+
+{% block content %}
+<div class="blueprint-page" data-design-id="{{ design_id|default:'' }}">
+  <a href="{% url 'home-page' %}" class="back-link">← 홈으로</a>
+
+  <header class="blueprint-header">
+    <span class="eyebrow">설계 (생성)</span>
+    <h1>설계서 만들기</h1>
+    <p class="section-hint">
+      자동화하고 싶은 업무를 설명하면 AI가 <strong>5-Layer Agent Blueprint</strong> 설계서를 작성합니다.
+      완료 후 <strong>에이전트 레시피</strong>로 등록해 마켓에 공유할 수 있습니다.
+    </p>
+  </header>
+
+  <section id="blueprint-wizard" class="blueprint-wizard">
+    <form id="blueprint-form" class="blueprint-form" novalidate>
+      <div class="form-group">
+        <label for="design-title">제목 <span class="text-muted">(선택)</span></label>
+        <input type="text" id="design-title" class="form-input" maxlength="200"
+               placeholder="예: 주간 마케팅 리포트 자동화">
+      </div>
+      <div class="form-group">
+        <label for="design-brief">자동화하고 싶은 업무 <span class="required">*</span></label>
+        <textarea id="design-brief" class="form-input" rows="6" required
+                  placeholder="예: 매주 월요일마다 GA4·광고 데이터를 모아 팀 슬랙에 요약 리포트를 보내고 싶습니다."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="design-context">추가 맥락 <span class="text-muted">(선택)</span></label>
+        <textarea id="design-context" class="form-input" rows="4"
+                  placeholder="사용 중인 도구, 제약, 팀 규칙 등"></textarea>
+      </div>
+      <p id="blueprint-form-error" class="error-state" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary" id="blueprint-submit-btn">설계서 생성하기</button>
+    </form>
+  </section>
+
+  <section id="blueprint-processing" class="blueprint-processing" style="display:none;">
+    <div class="loading-spinner"></div>
+    <p>AI가 업무 자동화 설계서를 작성 중입니다… <span id="blueprint-elapsed">0</span>초</p>
+    <p class="text-muted" id="blueprint-ws-hint" style="font-size:13px;"></p>
+  </section>
+
+  <section id="blueprint-result" class="agent-transform-section" style="display:none;">
+    <h3 class="section-title">AI 업무 자동화 설계서 (5-Layer)</h3>
+    <div class="strategy-summary">
+      <div class="pattern-badge">
+        <span class="badge-label">패턴</span>
+        <span id="bp-overall-pattern">Sequential</span>
+      </div>
+      <p class="strategy-line"><strong>참고:</strong> <span id="bp-knowledge-summary"></span></p>
+      <p class="strategy-line"><strong>연결:</strong> <span id="bp-context-summary"></span></p>
+      <p class="strategy-line"><strong>운영:</strong> <span id="bp-harness-summary"></span></p>
+      <p class="strategy-line"><strong>검증:</strong> <span id="bp-quality-summary"></span></p>
+    </div>
+    <ol id="bp-agent-steps" class="agent-steps"></ol>
+    <p class="transform-result-label">신뢰도: <strong id="bp-confidence">—</strong></p>
+
+    <div class="blueprint-publish-panel">
+      <h4 class="transform-steps-title">레시피로 등록</h4>
+      <p class="section-hint">설계 결과를 에이전트 레시피 초안으로 옮겨 마켓에 공유하세요.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="publish-category">레시피 카테고리</label>
+          <input type="text" id="publish-category" class="form-input" placeholder="예: 마케팅">
+        </div>
+      </div>
+      <div class="blueprint-publish-actions">
+        <button type="button" class="btn btn-secondary" id="prefill-recipe-btn">등록 폼에서 수정</button>
+        <button type="button" class="btn btn-primary" id="publish-recipe-btn">바로 레시피 등록</button>
+      </div>
+      <p id="publish-success" class="success-state" style="display:none;"></p>
+      <p id="publish-error" class="error-state" style="display:none;"></p>
+    </div>
+  </section>
+
+  <p id="blueprint-error" class="error-state" style="display:none;"></p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/blueprint-design.js' %}?v=20260609b"></script>
+{% endblock %}

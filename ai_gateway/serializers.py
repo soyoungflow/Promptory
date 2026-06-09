@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import AgentTransformation
+from .models import AgentTransformation, BlueprintDesign
 
 
 class AgentTransformationSerializer(serializers.ModelSerializer):
@@ -33,6 +33,30 @@ class SimilarPromptSerializer(serializers.Serializer):
     prompt_type = serializers.CharField(required=False, allow_blank=True)
     agent_pattern = serializers.CharField(required=False, allow_blank=True)
     similarity = serializers.FloatField()
+
+
+class BlueprintDesignCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200, required=False, allow_blank=True, default='')
+    brief = serializers.CharField(min_length=10)
+    extra_context = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class BlueprintPublishRecipeSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200, required=False, allow_blank=True)
+    recipe_category_name = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    description = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class BlueprintDesignSerializer(serializers.ModelSerializer):
+    transformation = AgentTransformationSerializer(read_only=True)
+
+    class Meta:
+        model = BlueprintDesign
+        fields = (
+            'id', 'title', 'brief', 'extra_context', 'status',
+            'transformation', 'recipe', 'created_at', 'updated_at',
+        )
+        read_only_fields = fields
 
 
 class MyTransformationSerializer(serializers.Serializer):

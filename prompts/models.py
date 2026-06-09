@@ -104,6 +104,9 @@ class Prompt(models.Model):
         blank=True, default='', verbose_name='에이전트 패턴',
     )
 
+    # 설계서 만들기 도구 내부 초안 (탐색·목록에서 제외)
+    is_blueprint_draft = models.BooleanField(default=False, db_index=True, verbose_name='설계 초안')
+
     # Soft Delete
     is_deleted = models.BooleanField(default=False, db_index=True, verbose_name='삭제 여부')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='삭제 일시')

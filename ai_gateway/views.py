@@ -10,7 +10,7 @@ from prompts.models import Prompt
 from tasks.celery_tasks import transform_prompt
 from tasks.models import Task
 
-from .models import AgentTransformation
+from .models import AgentTransformation, BlueprintDesign
 from .serializers import (
     AgentTransformationSerializer,
     SimilarPromptSerializer,
@@ -66,7 +66,11 @@ class TaskStatusView(APIView):
         }
         if task.started_at and task.finished_at:
             payload['elapsed_seconds'] = (task.finished_at - task.started_at).total_seconds()
-        if task.status == 'SUCCESS' and task.task_type == 'transform':
+        if task.status == 'SUCCESS' and task.task_type == 'blueprint_design':
+            design = BlueprintDesign.objects.filter(source_prompt_id=task.prompt_id).first()
+            if design:
+                payload['result_url'] = f'/api/blueprints/design/{design.id}/'
+        elif task.status == 'SUCCESS' and task.task_type == 'transform':
             payload['result_url'] = f'/api/prompts/{task.prompt_id}/agent/'
         serializer = TaskStatusSerializer(payload)
         return Response(serializer.data)
