@@ -14,8 +14,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const isEdit = page.dataset.mode === 'edit' && !!promptId;
 
   const promptTypeEl = document.getElementById('prompt-type');
+  const agentRecipeFields = document.getElementById('agent-recipe-fields');
+  const agentPatternEl = document.getElementById('agent-pattern');
+  const workflowStepsList = document.getElementById('workflow-steps-list');
+  const addWorkflowStepBtn = document.getElementById('add-workflow-step');
   const categoryEl = document.getElementById('category');
   const aiModelEl = document.getElementById('ai-model');
+  const singlePromptMeta = document.getElementById('single-prompt-meta')
+    || categoryEl?.closest('.form-row')
+    || null;
+  const agentRecipeMeta = document.getElementById('agent-recipe-meta');
+  const recipeCategoryEl = document.getElementById('recipe-category');
+  const recipeCategorySuggestions = document.getElementById('recipe-category-suggestions');
   const titleEl = document.getElementById('title');
   const descriptionEl = document.getElementById('description');
   const contentEl = document.getElementById('content');
@@ -46,8 +56,16 @@ document.addEventListener('DOMContentLoaded', () => {
     { value: 'other', label: '기타' },
   ];
 
+  const DEFAULT_WORKFLOW_STEP = () => ({
+    name: '',
+    system_message: '',
+    tool: '',
+    code: '',
+  });
+
   const state = {
     tags: [],
+    workflowSteps: [DEFAULT_WORKFLOW_STEP()],
   };
 
   function showTopError(msg) {
@@ -71,6 +89,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const free = !!isFreeEl.checked;
     priceGroup.style.display = free ? 'none' : '';
     if (free) priceEl.value = '0';
+  }
+
+  function isAgentRecipe() {
+    return promptTypeEl?.value === 'agent_recipe';
+  }
+
+  function setSectionVisible(el, visible) {
+    if (!el) return;
+    el.classList.toggle('form-section-hidden', !visible);
+    el.hidden = !visible;
+    el.style.display = visible ? '' : 'none';
+    if (visible) {
+      el.removeAttribute('aria-hidden');
+    } else {
+      el.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function toggleAgentRecipeFields() {
+    const recipe = isAgentRecipe();
+    setSectionVisible(agentRecipeFields, recipe);
+    setSectionVisible(singlePromptMeta, !recipe);
+    setSectionVisible(agentRecipeMeta, recipe);
+    if (recipe && !state.workflowSteps.length) {
+      state.workflowSteps = [DEFAULT_WORKFLOW_STEP()];
+      renderWorkflowSteps();
+    }
   }
 
   function getCategoryNameById(categoryId) {
@@ -107,6 +152,51 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
+  function renderWorkflowSteps() {
+    if (!workflowStepsList) return;
+    workflowStepsList.innerHTML = state.workflowSteps.map((step, index) => `
+      <div class="workflow-step-card" data-index="${index}">
+        <div class="workflow-step-card-head">
+          <strong>Step ${index + 1}</strong>
+          ${state.workflowSteps.length > 1
+            ? `<button type="button" class="btn-text-link remove-workflow-step" data-index="${index}">삭제</button>`
+            : ''}
+        </div>
+        <div class="form-group">
+          <label>단계 이름</label>
+          <input type="text" class="wf-name" data-index="${index}" value="${Api.escapeHtml(step.name)}" placeholder="예: 리서치">
+        </div>
+        <div class="form-group">
+          <label>시스템 메시지</label>
+          <textarea class="wf-system" data-index="${index}" rows="2" placeholder="이 단계에서 에이전트가 수행할 역할">${Api.escapeHtml(step.system_message)}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>도구 / MCP</label>
+            <input type="text" class="wf-tool" data-index="${index}" value="${Api.escapeHtml(step.tool)}" placeholder="web_search, code_exec…">
+          </div>
+          <div class="form-group">
+            <label>하네스 코드 <span class="hint">(선택)</span></label>
+            <textarea class="wf-code" data-index="${index}" rows="3" placeholder="LangGraph/CrewAI 스니펫">${Api.escapeHtml(step.code)}</textarea>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function syncWorkflowFromDom() {
+    state.workflowSteps = state.workflowSteps.map((step, index) => {
+      const card = workflowStepsList?.querySelector(`.workflow-step-card[data-index="${index}"]`);
+      if (!card) return step;
+      return {
+        name: card.querySelector('.wf-name')?.value.trim() || '',
+        system_message: card.querySelector('.wf-system')?.value.trim() || '',
+        tool: card.querySelector('.wf-tool')?.value.trim() || '',
+        code: card.querySelector('.wf-code')?.value.trim() || '',
+      };
+    });
+  }
+
   async function loadCategories() {
     const { res, data } = await Api.get('/prompts/categories/');
     if (!res.ok) throw new Error('카테고리를 불러오지 못했습니다.');
@@ -117,6 +207,19 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryEl.appendChild(opt);
     });
     syncAiModels(categoryEl.value || '');
+  }
+
+  async function loadRecipeCategorySuggestions() {
+    if (!recipeCategorySuggestions) return;
+    try {
+      const { res, data } = await Api.get('/prompts/recipe-categories/');
+      if (!res.ok) return;
+      recipeCategorySuggestions.innerHTML = (data.results || []).map(cat =>
+        `<option value="${Api.escapeHtml(cat.name)}"></option>`
+      ).join('');
+    } catch {
+      /* optional */
+    }
   }
 
   async function loadPromptForEdit() {
@@ -134,7 +237,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryId = data.category?.id ? String(data.category.id) : '';
     categoryEl.value = categoryId;
     syncAiModels(categoryId, data.ai_model || '');
+    if (recipeCategoryEl) {
+      recipeCategoryEl.value = data.recipe_category?.name || '';
+    }
     if (promptTypeEl) promptTypeEl.value = data.prompt_type || 'single_prompt';
+    if (agentPatternEl) agentPatternEl.value = data.agent_pattern || '';
+
+    const steps = data.workflow_steps || [];
+    state.workflowSteps = steps.length
+      ? steps.map(s => ({
+        name: s.name || '',
+        system_message: s.system_message || '',
+        tool: s.tool || '',
+        code: s.code || '',
+      }))
+      : [DEFAULT_WORKFLOW_STEP()];
+    renderWorkflowSteps();
+    toggleAgentRecipeFields();
 
     state.tags = (data.tags || []).map(t => t.name).filter(Boolean);
     renderTags();
@@ -165,8 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'title-error',
       category: 'category-error',
       ai_model: 'ai-model-error',
+      recipe_category_name: 'recipe-category-error',
       content: 'content-error',
       price: 'price-error',
+      agent_pattern: 'agent-pattern-error',
+      workflow_steps: 'workflow-steps-error',
     };
     Object.entries(mapping).forEach(([field, errorId]) => {
       const el = document.getElementById(errorId);
@@ -195,19 +317,25 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (isAgentRecipe()) syncWorkflowFromDom();
+
     const payload = {
       title: titleEl.value.trim(),
       description: descriptionEl.value.trim(),
       content: contentEl.value.trim(),
-      category: categoryEl.value ? Number(categoryEl.value) : null,
-      ai_model: aiModelEl.value,
       prompt_type: promptTypeEl?.value || 'single_prompt',
-      workflow_steps: [],
-      agent_pattern: '',
+      workflow_steps: isAgentRecipe() ? state.workflowSteps : [],
+      agent_pattern: isAgentRecipe() ? (agentPatternEl?.value || '') : '',
       is_free: !!isFreeEl.checked,
       price: isFreeEl.checked ? '0' : (priceEl.value || '0'),
       tag_names: state.tags,
     };
+    if (isAgentRecipe()) {
+      payload.recipe_category_name = recipeCategoryEl?.value.trim() || '';
+    } else {
+      payload.category = categoryEl.value ? Number(categoryEl.value) : null;
+      payload.ai_model = aiModelEl.value;
+    }
 
     try {
       const req = isEdit
@@ -233,11 +361,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  categoryEl.addEventListener('change', () => {
+  categoryEl?.addEventListener('change', () => {
     syncAiModels(categoryEl.value || '', aiModelEl.value);
   });
+  promptTypeEl?.addEventListener('change', toggleAgentRecipeFields);
+  promptTypeEl?.addEventListener('input', toggleAgentRecipeFields);
+  toggleAgentRecipeFields();
   isFreeEl.addEventListener('change', togglePrice);
   form.addEventListener('submit', onSubmit);
+
+  addWorkflowStepBtn?.addEventListener('click', () => {
+    syncWorkflowFromDom();
+    if (state.workflowSteps.length >= 8) return;
+    state.workflowSteps.push(DEFAULT_WORKFLOW_STEP());
+    renderWorkflowSteps();
+  });
+
+  workflowStepsList?.addEventListener('click', e => {
+    const btn = e.target.closest('.remove-workflow-step');
+    if (!btn) return;
+    syncWorkflowFromDom();
+    const index = Number(btn.dataset.index);
+    state.workflowSteps = state.workflowSteps.filter((_, i) => i !== index);
+    if (!state.workflowSteps.length) state.workflowSteps = [DEFAULT_WORKFLOW_STEP()];
+    renderWorkflowSteps();
+  });
 
   tagInput.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
@@ -260,8 +408,11 @@ document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     try {
       await loadCategories();
+      await loadRecipeCategorySuggestions();
       await loadPromptForEdit();
       togglePrice();
+      toggleAgentRecipeFields();
+      if (!isEdit) renderWorkflowSteps();
     } catch (err) {
       showTopError(err.message || '폼 초기화에 실패했습니다.');
     }

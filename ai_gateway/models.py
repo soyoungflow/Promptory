@@ -10,6 +10,18 @@ class AgentTransformation(models.Model):
     system_messages = models.JSONField(default=list)
     confidence_score = models.FloatField(default=0.0)
     model_used = models.CharField(max_length=100, default='')
+    overall_pattern = models.CharField(
+        max_length=20,
+        default='Sequential',
+        choices=[
+            ('Sequential', 'Sequential'),
+            ('ReAct', 'ReAct'),
+            ('Reflection', 'Reflection'),
+            ('MultiAgent', 'Multi-agent'),
+        ],
+    )
+    context_strategy_summary = models.CharField(max_length=200, blank=True, default='')
+    harness_strategy_summary = models.CharField(max_length=200, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -18,6 +30,7 @@ class AgentTransformation(models.Model):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['prompt', '-created_at']),
+            models.Index(fields=['overall_pattern']),
         ]
 
     def __str__(self):

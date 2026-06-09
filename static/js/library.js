@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
       <article class="library-transform-row">
         <a href="/prompts/${row.prompt_id}/" class="library-comment-prompt">${Api.escapeHtml(row.prompt_title)}</a>
-        <p class="text-muted">${steps}단계 · 신뢰도 ${Math.round((row.confidence_score || 0) * 100)}% · ${Api.escapeHtml(row.model_used || '')}</p>
+        <p class="text-muted">${steps}단계 · ${Api.escapeHtml(row.overall_pattern || 'Sequential')} · 신뢰도 ${Math.round((row.confidence_score || 0) * 100)}% · ${Api.escapeHtml(row.model_used || '')}</p>
         <p class="text-muted">${Api.escapeHtml(formatDt(row.created_at))}</p>
       </article>`;
     }).join('');

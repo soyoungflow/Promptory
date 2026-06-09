@@ -10,6 +10,7 @@ class PromptFilter(django_filters.FilterSet):
     ?ai_model=gpt-5-5    AI 모델
     ?is_free=true        무료 여부
     ?tag=python          태그 슬러그
+    ?prompt_type=agent_recipe  프롬프트 유형
     ?ordering=-created_at  정렬 (최신순 기본)
     """
     tag = django_filters.CharFilter(field_name='tags__slug', lookup_expr='exact')
@@ -22,4 +23,5 @@ class PromptFilter(django_filters.FilterSet):
             'category': ['exact'],
             'ai_model': ['exact'],
             'is_free': ['exact'],
+            'prompt_type': ['exact'],
         }

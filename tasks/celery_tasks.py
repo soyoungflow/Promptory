@@ -42,6 +42,8 @@ def transform_prompt(self, task_id: str, prompt_id: int):
         ).observe(elapsed)
 
         steps = result.get('decomposed_steps', [])
+        if not steps:
+            raise ValueError('AI가 워크플로 단계를 생성하지 못했습니다. 다시 시도해 주세요.')
         transformation = AgentTransformation.objects.create(
             prompt=prompt,
             decomposed_steps=steps,
@@ -49,6 +51,9 @@ def transform_prompt(self, task_id: str, prompt_id: int):
             system_messages=result.get('system_messages', []),
             confidence_score=float(result.get('confidence_score', 0.0)),
             model_used=result.get('model_used', ''),
+            overall_pattern=result.get('overall_pattern', 'Sequential'),
+            context_strategy_summary=result.get('context_strategy_summary', ''),
+            harness_strategy_summary=result.get('harness_strategy_summary', ''),
         )
 
         agent_transformation_total.labels(

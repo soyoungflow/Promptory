@@ -27,6 +27,11 @@ class TransformPromptView(APIView):
         prompt = get_object_or_404(Prompt, pk=pk, is_deleted=False)
         if prompt.user_id != request.user.id:
             return Response({'detail': '작성자만 변환을 요청할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        if prompt.prompt_type != 'single_prompt':
+            return Response(
+                {'detail': '단일 프롬프트만 AI 변환을 사용할 수 있습니다.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         task = Task.objects.create(
             task_id=uuid.uuid4(),

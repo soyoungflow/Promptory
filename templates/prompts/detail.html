@@ -28,9 +28,20 @@
     </div>
   </div>
 
-  <!-- Phase 4: 에이전트 변환 (작성자 전용, 인라인) -->
+  <!-- 비슷한 레시피 (임베딩 유사도, 변환 결과와 분리) -->
+  <div id="similar-recipes-section" class="similar-recipes-section" style="display:none;">
+    <h3 class="section-title">비슷한 레시피</h3>
+    <p class="section-hint">임베딩 유사도 10% 이상인 다른 레시피·프롬프트입니다.</p>
+    <ul id="similar-recipes-list" class="similar-recipes-list"></ul>
+  </div>
+
+  <!-- Phase 4: AI 에이전트 변환 (작성자 도구 — 레시피 상세에서만) -->
   <div class="agent-transform-section" id="agent-section" style="display:none;">
-    <h3 class="section-title">에이전트 변환</h3>
+    <h3 class="section-title">AI 워크플로 초안 <span class="tag tag-sm">작성자 도구</span></h3>
+    <p class="section-hint">
+      <strong>레시피 작성자</strong>가 시스템 프롬프트·컨텍스트를 AI가 4단계 워크플로 <em>초안</em>으로 분해해 줍니다.
+      방문자에게는 보이지 않으며, 수동 워크플로 편집의 참고용입니다.
+    </p>
     <button type="button" class="btn btn-primary" id="transform-btn">에이전트로 변환하기</button>
     <div id="transform-status" class="transform-status" style="display:none;">
       <div class="loading-spinner" style="margin:12px 0;"></div>
@@ -38,12 +49,21 @@
       <p class="text-muted" id="transform-ws-hint" style="font-size:13px;"></p>
     </div>
     <div id="transform-result" class="transform-result" style="display:none;">
-      <p>신뢰도: <strong id="confidence">—</strong></p>
-      <ol id="agent-steps" class="agent-steps"></ol>
-      <div id="similar-prompts" class="similar-prompts" style="display:none;">
-        <h4>유사 프롬프트</h4>
-        <ul id="similar-list"></ul>
+      <div class="strategy-summary">
+        <div class="pattern-badge">
+          <span class="badge-label">패턴</span>
+          <span id="overall-pattern">Sequential</span>
+        </div>
+        <p class="strategy-line">
+          <strong>Context:</strong> <span id="context-summary"></span>
+        </p>
+        <p class="strategy-line">
+          <strong>Harness:</strong> <span id="harness-summary"></span>
+        </p>
       </div>
+      <h4 class="transform-steps-title">4단계 에이전트 워크플로우</h4>
+      <ol id="agent-steps" class="agent-steps"></ol>
+      <p class="transform-result-label">신뢰도: <strong id="confidence">—</strong></p>
     </div>
     <p id="transform-error" class="error-state" style="display:none;"></p>
   </div>
@@ -76,5 +96,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/prompt-detail.js' %}"></script>
+<script src="{% static 'js/prompt-detail.js' %}?v=20260609b"></script>
 {% endblock %}

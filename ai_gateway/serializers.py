@@ -9,6 +9,7 @@ class AgentTransformationSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'prompt', 'decomposed_steps', 'suggested_tools',
             'system_messages', 'confidence_score', 'model_used', 'created_at',
+            'overall_pattern', 'context_strategy_summary', 'harness_strategy_summary',
         )
 
 
@@ -28,6 +29,8 @@ class TaskStatusSerializer(serializers.Serializer):
 class SimilarPromptSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     title = serializers.CharField()
+    prompt_type = serializers.CharField(required=False, allow_blank=True)
+    agent_pattern = serializers.CharField(required=False, allow_blank=True)
     similarity = serializers.FloatField()
 
 
@@ -39,5 +42,8 @@ class MyTransformationSerializer(serializers.Serializer):
     suggested_tools = serializers.JSONField()
     confidence_score = serializers.FloatField()
     model_used = serializers.CharField()
+    overall_pattern = serializers.CharField(required=False, allow_blank=True)
+    context_strategy_summary = serializers.CharField(required=False, allow_blank=True)
+    harness_strategy_summary = serializers.CharField(required=False, allow_blank=True)
     created_at = serializers.DateTimeField()
     task_id = serializers.UUIDField(allow_null=True)

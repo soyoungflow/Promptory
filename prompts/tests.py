@@ -3,7 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Category, Prompt, Tag
+from .models import Category, RecipeCategory, Prompt, Tag
 
 
 User = get_user_model()
@@ -120,3 +120,30 @@ class PromptApiContractTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('category', response.data)
+
+    def test_agent_recipe_create_uses_recipe_category_not_ai_model(self):
+        self.client.force_authenticate(user=self.author)
+
+        response = self.client.post('/api/prompts/', {
+            'title': '마케팅 에이전트 레시피',
+            'content': '시스템 프롬프트 본문입니다.',
+            'description': '설명',
+            'prompt_type': 'agent_recipe',
+            'agent_pattern': 'sequential',
+            'recipe_category_name': '마케팅',
+            'workflow_steps': [{
+                'name': '리서치',
+                'system_message': '주제를 조사하세요.',
+                'tool': 'web_search',
+            }],
+            'is_free': True,
+            'price': '0.00',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        prompt = Prompt.objects.get(id=response.data['id'])
+        self.assertEqual(prompt.prompt_type, 'agent_recipe')
+        self.assertEqual(prompt.ai_model, 'other')
+        self.assertIsNone(prompt.category_id)
+        self.assertEqual(prompt.recipe_category.name, '마케팅')
+        self.assertTrue(RecipeCategory.objects.filter(name='마케팅').exists())

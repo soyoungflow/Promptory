@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from interaction.models import Comment, Like
-from prompts.models import Category, Prompt, Tag
+from prompts.models import Category, RecipeCategory, Prompt, Tag
 
 
 User = get_user_model()
@@ -30,10 +30,61 @@ AGENT_RECIPE_CONTENT = """블로그 글쓰기 에이전트 워크플로우
 """
 
 AGENT_RECIPE_WORKFLOW = [
-    {"step": 1, "name": "리서치", "system_message": "주제 관련 최신 정보 5개 수집", "tool": "web_search"},
-    {"step": 2, "name": "개요", "system_message": "수집한 정보를 H2/H3 헤딩으로 구조화", "tool": "outline_generator"},
-    {"step": 3, "name": "초안", "system_message": "섹션당 300자 이상 풀어쓰기", "tool": "text_generation"},
-    {"step": 4, "name": "검토", "system_message": "문법/사실/일관성 점검 및 수정 제안", "tool": "reflection"},
+    {
+        "step": 1, "name": "리서치",
+        "system_message": "주제에 관련된 최신 정보 5개 수집",
+        "tool": "web_search",
+        "context_policy": {
+            "previous_output_strategy": "none",
+            "memory_scope": "this_step_only",
+            "reason": "첫 단계는 원본 프롬프트만",
+        },
+        "harness_policy": {
+            "timeout_seconds": 45, "max_retries": 3,
+            "fallback_action": "use_default", "cost_budget_tokens": 3000,
+        },
+    },
+    {
+        "step": 2, "name": "개요",
+        "system_message": "수집한 정보를 H2/H3 헤딩으로 구조화",
+        "tool": "outline_generator",
+        "context_policy": {
+            "previous_output_strategy": "summarize_500",
+            "memory_scope": "all_previous",
+            "reason": "리서치 결과 누적 시 컨텍스트 폭발 — 요약 필수",
+        },
+        "harness_policy": {
+            "timeout_seconds": 20, "max_retries": 2,
+            "validation_schema": "outline_v1.json", "cost_budget_tokens": 1500,
+        },
+    },
+    {
+        "step": 3, "name": "초안",
+        "system_message": "섹션당 300자 이상 풀어쓰기",
+        "tool": "text_generation",
+        "context_policy": {
+            "previous_output_strategy": "full",
+            "memory_scope": "all_previous",
+            "reason": "개요는 짧고 초안 생성에 필수",
+        },
+        "harness_policy": {
+            "timeout_seconds": 60, "max_retries": 2, "cost_budget_tokens": 4000,
+        },
+    },
+    {
+        "step": 4, "name": "검토",
+        "system_message": "문법/사실/일관성 점검 및 수정 제안",
+        "tool": "reflection",
+        "context_policy": {
+            "previous_output_strategy": "selective",
+            "memory_scope": "all_previous",
+            "reason": "초안 중심 검토, 리서치는 사실 검증용만",
+        },
+        "harness_policy": {
+            "timeout_seconds": 30, "max_retries": 1,
+            "fallback_action": "skip_step", "cost_budget_tokens": 2000,
+        },
+    },
 ]
 
 
@@ -412,8 +463,7 @@ AGENT_RECIPE_PROMPTS = [
     {
         'title': '블로그 글쓰기 에이전트 (4단계 자동 분해)',
         'description': '리서치-개요-초안-검토를 자동으로 실행하는 에이전트 레시피 템플릿.',
-        'category': 'ChatGPT',
-        'ai_model': 'gpt-5-5',
+        'recipe_category': '글쓰기',
         'is_free': True,
         'price': 0,
         'tags': ['글쓰기', '에이전트', '자동화'],
@@ -429,8 +479,7 @@ AGENT_RECIPE_PROMPTS = [
     {
         'title': '회의록 요약 에이전트 (의사결정 추출)',
         'description': '회의 텍스트에서 의사결정·담당자·기한을 단계적으로 추출하는 레시피.',
-        'category': 'Claude',
-        'ai_model': 'claude-sonnet-4-6',
+        'recipe_category': '비즈니스',
         'is_free': True,
         'price': 0,
         'tags': ['요약', '비즈니스', '에이전트'],
@@ -446,8 +495,7 @@ AGENT_RECIPE_PROMPTS = [
     {
         'title': '코드 리뷰 에이전트 (분석-수정안-검증)',
         'description': '코드 품질 문제를 찾아 수정안과 검증 체크리스트를 생성하는 레시피.',
-        'category': 'Gemini',
-        'ai_model': 'gemini-3-1-pro',
+        'recipe_category': '코딩',
         'is_free': False,
         'price': 1500,
         'tags': ['코딩', '리뷰', '에이전트'],
@@ -504,16 +552,22 @@ class Command(BaseCommand):
         authors = self._create_authors()
         like_users = self._create_like_users(max(item['likes'] for item in PROMPTS))
 
+        recipe_categories = self._create_recipe_categories()
+
         created_prompts = []
         for item in PROMPTS:
+            is_recipe = item.get('prompt_type') == 'agent_recipe'
             prompt, _ = Prompt.all_objects.update_or_create(
                 title=item['title'],
                 user=authors[item['author']],
                 defaults={
-                    'category': categories.get(item['category']),
+                    'category': None if is_recipe else categories.get(item['category']),
+                    'recipe_category': (
+                        recipe_categories.get(item['recipe_category']) if is_recipe else None
+                    ),
                     'content': item.get('content_override', PROMPT_CONTENT),
                     'description': item['description'],
-                    'ai_model': item['ai_model'],
+                    'ai_model': 'other' if is_recipe else item['ai_model'],
                     'prompt_type': item.get('prompt_type', 'single_prompt'),
                     'workflow_steps': item.get('workflow_steps', []),
                     'agent_pattern': item.get('agent_pattern', ''),
@@ -540,6 +594,21 @@ class Command(BaseCommand):
         seed_emails += [f'mock-like-{index:03d}@promptory.local' for index in range(1, 211)]
         Prompt.all_objects.filter(title__in=[item['title'] for item in PROMPTS]).delete()
         User.objects.filter(email__in=seed_emails).delete()
+
+    def _create_recipe_categories(self):
+        names = sorted({
+            item['recipe_category']
+            for item in PROMPTS
+            if item.get('prompt_type') == 'agent_recipe' and item.get('recipe_category')
+        })
+        recipe_categories = {}
+        for name in names:
+            category, _ = RecipeCategory.objects.update_or_create(
+                slug=slugify(name, allow_unicode=True),
+                defaults={'name': name},
+            )
+            recipe_categories[name] = category
+        return recipe_categories
 
     def _create_categories(self):
         Category.objects.filter(slug__in=['midjourney', 'stable-diffusion']).delete()

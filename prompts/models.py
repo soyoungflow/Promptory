@@ -5,6 +5,7 @@ from .managers import SoftDeleteManager
 
 
 class Category(models.Model):
+    """단일 프롬프트용 AI 벤더 카테고리 (ChatGPT, Claude 등)."""
     name        = models.CharField(max_length=50, unique=True, verbose_name='카테고리명')
     slug        = models.SlugField(max_length=50, unique=True, verbose_name='슬러그')
     description = models.TextField(blank=True, verbose_name='설명')
@@ -13,6 +14,21 @@ class Category(models.Model):
     class Meta:
         verbose_name        = '카테고리'
         verbose_name_plural = '카테고리 목록'
+        ordering            = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class RecipeCategory(models.Model):
+    """에이전트 레시피용 주제 카테고리 (작성자가 직접 입력·생성)."""
+    name       = models.CharField(max_length=50, unique=True, verbose_name='레시피 카테고리명')
+    slug       = models.SlugField(max_length=50, unique=True, verbose_name='슬러그')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name        = '레시피 카테고리'
+        verbose_name_plural = '레시피 카테고리 목록'
         ordering            = ['name']
 
     def __str__(self):
@@ -61,6 +77,10 @@ class Prompt(models.Model):
                                  related_name='prompts', verbose_name='작성자')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL,
                                  null=True, blank=True, related_name='prompts', verbose_name='카테고리')
+    recipe_category = models.ForeignKey(
+        RecipeCategory, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='prompts', verbose_name='레시피 카테고리',
+    )
     tags     = models.ManyToManyField(Tag, blank=True, related_name='prompts', verbose_name='태그')
 
     title       = models.CharField(max_length=200, verbose_name='제목')

@@ -26,6 +26,63 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginPrompt) loginPrompt.style.display = '';
   }
 
+  const PROMPT_TYPE_LABELS = {
+    single_prompt: '단일 프롬프트',
+    agent_recipe: '에이전트 레시피',
+    mcp_package: 'MCP 패키지',
+  };
+  const AGENT_PATTERN_LABELS = {
+    sequential: 'Sequential',
+    react: 'ReAct',
+    reflection: 'Reflection',
+    multi_agent: 'Multi-agent',
+  };
+
+  function renderStepPolicies(s) {
+    const cp = s.context_policy || {};
+    const hp = s.harness_policy || {};
+    if (!cp.previous_output_strategy && !hp.timeout_seconds) return '';
+    return `
+      <details class="step-policy">
+        <summary>컨텍스트 정책</summary>
+        <div class="policy-block">
+          <div><span class="policy-key">전달 방식:</span> ${Api.escapeHtml(cp.previous_output_strategy || 'full')}</div>
+          <div><span class="policy-key">메모리 범위:</span> ${Api.escapeHtml(cp.memory_scope || 'all_previous')}</div>
+          ${cp.reason ? `<div class="policy-reason">${Api.escapeHtml(cp.reason)}</div>` : ''}
+        </div>
+      </details>
+      <details class="step-policy">
+        <summary>하네스 정책</summary>
+        <div class="policy-block">
+          <div><span class="policy-key">타임아웃:</span> ${hp.timeout_seconds || 30}초</div>
+          <div><span class="policy-key">재시도:</span> ${hp.max_retries ?? 2}회</div>
+          <div><span class="policy-key">실패 시:</span> ${Api.escapeHtml(hp.fallback_action || 'skip_step')}</div>
+          <div><span class="policy-key">예산:</span> ${hp.cost_budget_tokens || 2000} 토큰</div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderWorkflowSteps(steps) {
+    if (!steps?.length) return '';
+    return `
+      <ol class="recipe-steps">
+        ${steps.map(s => `
+          <li class="recipe-step-card">
+            <div class="recipe-step-head">
+              <span class="recipe-step-num">Step ${s.step || '?'}</span>
+              <strong>${Api.escapeHtml(s.name || '')}</strong>
+              ${s.tool ? `<span class="tag tag-tool">${Api.escapeHtml(s.tool)}</span>` : ''}
+            </div>
+            <p class="recipe-step-msg">${Api.escapeHtml(s.system_message || '')}</p>
+            ${renderStepPolicies(s)}
+            ${s.code ? `<pre class="recipe-step-code">${Api.escapeHtml(s.code)}</pre>` : ''}
+          </li>
+        `).join('')}
+      </ol>
+    `;
+  }
+
   // 프롬프트 상세 로딩
   async function loadPrompt() {
     try {
@@ -38,12 +95,29 @@ document.addEventListener('DOMContentLoaded', () => {
       ).join('');
 
       const isPaid = !p.is_free;
+      const isRecipe = p.prompt_type === 'agent_recipe';
       const previewContent = isPaid ? getPaidPreviewContent(p.content, 3) : Api.escapeHtml(p.content);
+      const typeLabel = PROMPT_TYPE_LABELS[p.prompt_type] || p.prompt_type;
+      const patternLabel = p.agent_pattern ? (AGENT_PATTERN_LABELS[p.agent_pattern] || p.agent_pattern) : '';
+      const recipeCategoryName = p.recipe_category?.name || '';
+      const workflowHtml = isRecipe && (p.workflow_steps || []).length
+        ? `
+          <div class="recipe-workflow-section">
+            <h3 class="section-title">에이전트 워크플로</h3>
+            ${patternLabel ? `<p class="recipe-pattern"><span class="tag tag-agent">패턴: ${Api.escapeHtml(patternLabel)}</span></p>` : ''}
+            ${renderWorkflowSteps(p.workflow_steps)}
+          </div>
+          <div class="detail-divider"></div>
+        `
+        : '';
 
       detailEl.innerHTML = `
         <div class="detail-header">
           <div class="detail-meta">
-            <span class="detail-model">${p.ai_model}</span>
+            <span class="tag ${isRecipe ? 'tag-agent' : 'tag-type'}">${Api.escapeHtml(typeLabel)}</span>
+            ${isRecipe && recipeCategoryName
+              ? `<span class="detail-model">${Api.escapeHtml(recipeCategoryName)}</span>`
+              : !isRecipe ? `<span class="detail-model">${p.ai_model}</span>` : ''}
             ${p.is_free
               ? '<span class="tag tag-free">무료</span>'
               : `<span class="tag tag-paid">₩${Number(p.price).toLocaleString()}</span>`}
@@ -60,8 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
           ${p.description ? `<p class="detail-desc">${Api.escapeHtml(p.description)}</p>` : ''}
         </div>
         <div class="detail-divider"></div>
+        ${workflowHtml}
         <div class="prompt-content-box ${isPaid ? 'is-paid-preview' : ''}">
-          <div class="content-label">프롬프트 본문</div>
+          <div class="content-label">${isRecipe ? '시스템 프롬프트 / 컨텍스트' : '프롬프트 본문'}</div>
           <pre class="prompt-content">${previewContent}</pre>
           ${isPaid ? `
             <div class="paid-overlay">
@@ -97,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       setupAgentSection(p, isAuthor);
+      loadSimilarRecipes();
       loadComments();
     } catch {
       detailEl.innerHTML = '<div class="error-state">프롬프트를 불러오지 못했습니다.</div>';
@@ -233,14 +309,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setupAgentSection(prompt, isAuthor) {
     if (!agentSection) return;
+    const isRecipeAuthor = prompt.prompt_type === 'agent_recipe' && isAuthor && Auth.isLoggedIn();
+    if (!isRecipeAuthor) {
+      agentSection.style.display = 'none';
+      return;
+    }
     agentSection.style.display = '';
     if (transformBtn) {
-      transformBtn.style.display = isAuthor && Auth.isLoggedIn() ? '' : 'none';
-    }
-    loadLatestAgentResult();
-    if (isAuthor && transformBtn) {
+      transformBtn.style.display = '';
       transformBtn.onclick = startTransform;
     }
+    loadLatestAgentResult();
   }
 
   async function loadLatestAgentResult() {
@@ -254,35 +333,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderAgentResult(agent) {
     if (!transformResult) return;
+    const steps = agent.decomposed_steps || [];
     transformStatus.style.display = 'none';
+    if (!steps.length) {
+      transformResult.style.display = 'none';
+      transformError.style.display = '';
+      transformError.textContent =
+        '변환은 완료됐지만 단계가 비어 있습니다. 다시 「에이전트로 변환하기」를 눌러 주세요.';
+      return;
+    }
     transformError.style.display = 'none';
     transformResult.style.display = '';
+    const overallPatternEl = document.getElementById('overall-pattern');
+    const contextSummaryEl = document.getElementById('context-summary');
+    const harnessSummaryEl = document.getElementById('harness-summary');
+    if (overallPatternEl) {
+      overallPatternEl.textContent = agent.overall_pattern || 'Sequential';
+    }
+    if (contextSummaryEl) {
+      contextSummaryEl.textContent = agent.context_strategy_summary || '—';
+    }
+    if (harnessSummaryEl) {
+      harnessSummaryEl.textContent = agent.harness_strategy_summary || '—';
+    }
     const stepsEl = document.getElementById('agent-steps');
-    const steps = agent.decomposed_steps || [];
     stepsEl.innerHTML = steps.map(s => `
-      <li>
-        <strong>${Api.escapeHtml(s.name || `Step ${s.step}`)}</strong>
-        <p>${Api.escapeHtml(s.system_message || '')}</p>
-        ${s.tool ? `<small>도구: ${Api.escapeHtml(s.tool)}</small>` : ''}
+      <li class="agent-step-card">
+        <div class="step-header">
+          <strong>${Api.escapeHtml(s.name || `Step ${s.step}`)}</strong>
+          ${s.tool ? `<span class="step-tool">${Api.escapeHtml(s.tool)}</span>` : ''}
+        </div>
+        <p class="step-instruction">${Api.escapeHtml(s.system_message || '')}</p>
+        ${renderStepPolicies(s)}
       </li>
     `).join('');
     document.getElementById('confidence').textContent =
       Math.round((agent.confidence_score || 0) * 100) + '%';
-    loadSimilarPrompts();
+    if (agentSection) agentSection.style.display = '';
   }
 
-  async function loadSimilarPrompts() {
-    const box = document.getElementById('similar-prompts');
-    const list = document.getElementById('similar-list');
-    if (!box || !list) return;
+  async function loadSimilarRecipes() {
+    const section = document.getElementById('similar-recipes-section');
+    const list = document.getElementById('similar-recipes-list');
+    if (!section || !list) return;
     try {
       const { res, data } = await Api.get(`/prompts/${promptId}/similar/`);
       if (!res.ok || !data?.length) return;
-      box.style.display = '';
-      list.innerHTML = data.map(item => `
-        <li><a href="/prompts/${item.id}/">${Api.escapeHtml(item.title)}</a>
-        <span class="text-muted"> (${(item.similarity * 100).toFixed(1)}%)</span></li>
-      `).join('');
+      section.style.display = '';
+      list.innerHTML = data.map(item => {
+        const typeTag = item.prompt_type === 'agent_recipe'
+          ? '<span class="tag tag-agent tag-sm">레시피</span>'
+          : '<span class="tag tag-type tag-sm">프롬프트</span>';
+        const pattern = item.agent_pattern
+          ? ` · ${Api.escapeHtml(AGENT_PATTERN_LABELS[item.agent_pattern] || item.agent_pattern)}`
+          : '';
+        return `
+          <li class="similar-recipe-item">
+            <a href="/prompts/${item.id}/">${Api.escapeHtml(item.title)}</a>
+            ${typeTag}
+            <span class="text-muted">유사도 ${(item.similarity * 100).toFixed(1)}%${pattern}</span>
+          </li>
+        `;
+      }).join('');
     } catch {
       /* optional */
     }
@@ -329,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function pollTaskStatus(taskId) {
     const started = Date.now();
-    const maxWait = 120000;
+    const maxWait = 300000;
     pollTimer = setInterval(async () => {
       elapsedEl.textContent = Math.floor((Date.now() - started) / 1000);
       try {
@@ -341,15 +453,27 @@ document.addEventListener('DOMContentLoaded', () => {
             status: data.status,
             error_message: data.error_message,
           });
+          return;
         }
       } catch {
         /* retry on next tick */
       }
       if (Date.now() - started > maxWait) {
         clearInterval(pollTimer);
+        try {
+          const { res, data } = await Api.get(`/prompts/${promptId}/agent/`);
+          if (res.ok && data?.decomposed_steps?.length) {
+            renderAgentResult(data);
+            if (transformBtn) transformBtn.disabled = false;
+            return;
+          }
+        } catch {
+          /* fall through to timeout message */
+        }
         transformStatus.style.display = 'none';
         transformError.style.display = '';
-        transformError.textContent = '변환 시간이 초과되었습니다.';
+        transformError.textContent =
+          '변환 시간이 초과되었습니다. 잠시 후 새로고침하거나 다시 시도해 주세요.';
         if (transformBtn) transformBtn.disabled = false;
       }
     }, 1000);

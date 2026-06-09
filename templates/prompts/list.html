@@ -6,9 +6,18 @@
 {% block content %}
 <div class="explore-layout">
   <aside class="sidebar">
-    <div class="sidebar-title">카테고리</div>
-    <div id="category-sidebar" class="sidebar-list">
-      <button class="sidebar-item active" type="button" data-category="">전체 <span>ALL</span></button>
+    <div id="sidebar-category-section">
+      <div class="sidebar-title">카테고리</div>
+      <div id="category-sidebar" class="sidebar-list">
+        <button class="sidebar-item active" type="button" data-category="">전체 <span>ALL</span></button>
+      </div>
+      <div class="sidebar-divider"></div>
+    </div>
+    <div class="sidebar-title">콘텐츠 유형</div>
+    <div id="type-sidebar" class="sidebar-list">
+      <button class="sidebar-item" type="button" data-prompt-type="">전체 유형</button>
+      <button class="sidebar-item" type="button" data-prompt-type="single_prompt">단일 프롬프트</button>
+      <button class="sidebar-item" type="button" data-prompt-type="agent_recipe">에이전트 레시피</button>
     </div>
 
     <div class="sidebar-divider"></div>
@@ -23,7 +32,7 @@
       <div>
         <span class="eyebrow">Explore</span>
         <h1>프롬프트 탐색</h1>
-        <p>카테고리와 모델, 가격 조건으로 필요한 프롬프트를 찾아보세요.</p>
+        <p id="explore-subtitle">단일 프롬프트와 에이전트 레시피를 검색·유형으로 찾아보세요.</p>
       </div>
       <div class="view-toggle" aria-label="보기 방식">
         <button type="button" class="active">Grid</button>
@@ -51,6 +60,11 @@
           <option value="gemini-3-1-pro">Gemini 3.1 Pro</option>
           <option value="gemini-3-0-flash">Gemini 3.0 Flash</option>
           <option value="other">기타</option>
+        </select>
+        <select id="filter-prompt-type" class="filter-select">
+          <option value="">전체 유형</option>
+          <option value="single_prompt">단일 프롬프트</option>
+          <option value="agent_recipe">에이전트 레시피</option>
         </select>
         <select id="filter-is-free" class="filter-select">
           <option value="">무료 + 유료</option>

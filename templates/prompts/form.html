@@ -7,7 +7,7 @@
   <div class="form-page-header">
     <span class="eyebrow">Create</span>
     <h1>{% if is_edit %}프롬프트 수정{% else %}프롬프트 등록{% endif %}</h1>
-    <p>제목, 카테고리, 본문, 태그를 입력해 커뮤니티에 공유하세요.</p>
+    <p>단일 프롬프트 또는 에이전트 레시피(워크플로·패턴·도구)를 공유하세요.</p>
   </div>
   <div class="form-card">
     <div id="form-error" class="alert alert-error" style="display:none;"></div>
@@ -20,18 +20,52 @@
       </div>
 
       <div class="form-group">
-        <label for="prompt-type">프롬프트 유형</label>
+        <label for="prompt-type">콘텐츠 유형</label>
         <select id="prompt-type" name="prompt_type">
           <option value="single_prompt">단일 프롬프트</option>
-          <option value="agent_recipe">에이전트 레시피</option>
+          <option value="agent_recipe">에이전트 레시피 (워크플로·하네스)</option>
           <option value="mcp_package" disabled>MCP 패키지 (준비 중)</option>
         </select>
+        <p class="hint" id="prompt-type-hint">단일 프롬프트: 복사해서 바로 쓰는 텍스트. 에이전트 레시피: 단계·패턴·도구 구성을 공유합니다.</p>
       </div>
 
-      <div class="form-row">
+      <div id="agent-recipe-meta" class="form-group form-section-hidden" hidden>
+        <label for="recipe-category">레시피 카테고리 <span class="required">*</span></label>
+        <input type="text" id="recipe-category" name="recipe_category_name" list="recipe-category-suggestions"
+               placeholder="예: 마케팅, 코딩, 리서치" maxlength="50">
+        <datalist id="recipe-category-suggestions"></datalist>
+        <p class="hint">에이전트가 다루는 주제·도메인을 직접 입력하세요. 기존 카테고리와 자동 매칭됩니다.</p>
+        <span class="field-error" id="recipe-category-error"></span>
+      </div>
+
+      <div id="agent-recipe-fields" class="agent-recipe-fields form-section-hidden" hidden>
         <div class="form-group">
-          <label for="category">카테고리 <span class="required">*</span></label>
-          <select id="category" name="category" required>
+          <label for="agent-pattern">에이전트 패턴 <span class="required">*</span></label>
+          <select id="agent-pattern" name="agent_pattern">
+            <option value="">패턴을 선택하세요</option>
+            <option value="sequential">Sequential — 단계별 순차 실행</option>
+            <option value="react">ReAct — 추론 + 도구 호출 반복</option>
+            <option value="reflection">Reflection — 생성 후 자기 검토</option>
+            <option value="multi_agent">Multi-agent — 역할 분담 협업</option>
+          </select>
+          <span class="field-error" id="agent-pattern-error"></span>
+        </div>
+
+        <div class="form-group">
+          <div class="workflow-header">
+            <label>워크플로 단계 <span class="required">*</span></label>
+            <button type="button" class="btn btn-secondary btn-sm" id="add-workflow-step">+ 단계 추가</button>
+          </div>
+          <p class="hint">각 단계에 역할, 시스템 메시지, 사용 도구, (선택) 하네스 코드 스니펫을 입력하세요.</p>
+          <div id="workflow-steps-list" class="workflow-steps-list"></div>
+          <span class="field-error" id="workflow-steps-error"></span>
+        </div>
+      </div>
+
+      <div id="single-prompt-meta" class="form-row">
+        <div class="form-group">
+          <label for="category">AI 벤더 카테고리 <span class="required">*</span></label>
+          <select id="category" name="category">
             <option value="">카테고리를 선택하세요</option>
             <!-- JS가 /api/prompts/categories/ 로 동적 로딩 -->
           </select>
@@ -39,7 +73,7 @@
         </div>
         <div class="form-group">
           <label for="ai-model">AI 모델 <span class="required">*</span></label>
-          <select id="ai-model" name="ai_model" required>
+          <select id="ai-model" name="ai_model">
             <option value="">모델을 선택하세요</option>
             <!-- JS: 카테고리별 필터 + prompts.models AI_MODEL_CHOICES 와 동기화 -->
           </select>
@@ -98,5 +132,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/prompt-form.js' %}"></script>
+<script src="{% static 'js/prompt-form.js' %}?v=20260609"></script>
 {% endblock %}

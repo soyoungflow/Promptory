@@ -5,9 +5,9 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Q
 
-from .models import Category, Tag, Prompt, PromptFile
+from .models import Category, RecipeCategory, Tag, Prompt, PromptFile
 from .serializers import (
-    CategorySerializer, TagSerializer,
+    CategorySerializer, RecipeCategorySerializer, TagSerializer,
     PromptListSerializer, PromptDetailSerializer,
     PromptWriteSerializer, PromptFileSerializer,
 )
@@ -16,10 +16,18 @@ from .filters import PromptFilter
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """카테고리 목록 / 상세 (읽기 전용)"""
+    """단일 프롬프트용 AI 벤더 카테고리 (읽기 전용)"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+class RecipeCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """에이전트 레시피 주제 카테고리 (읽기 전용, 폼 자동완성용)"""
+    queryset = RecipeCategory.objects.all()
+    serializer_class = RecipeCategorySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    search_fields = ['name', 'slug']
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -72,7 +80,7 @@ class PromptViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Soft Delete 된 항목 제외
         return Prompt.objects.filter(is_deleted=False).select_related(
-            'user', 'category'
+            'user', 'category', 'recipe_category',
         ).prefetch_related('tags', 'files', 'likes', 'bookmarks')
 
     def get_serializer_class(self):

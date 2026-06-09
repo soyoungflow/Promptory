@@ -35,21 +35,25 @@
 
 <section class="home-section">
   <div class="section-heading">
-    <h2>어떤 프롬프트를 찾고 있나요?</h2>
-    <p>복사해서 붙여넣기만 하면 됩니다. 카테고리, AI 모델, 무료 여부로 빠르게 찾아보세요.</p>
+    <h2>프롬프트와 에이전트 레시피</h2>
+    <p>단일 프롬프트뿐 아니라 워크플로·패턴·도구 구성을 공유한 레시피도 탐색할 수 있습니다.</p>
   </div>
   <div class="feature-grid">
+    <a href="{% url 'prompt-list-page' %}?prompt_type=agent_recipe" class="feature-card">
+      <strong>에이전트 레시피</strong>
+      <span>워크플로·하네스·도구 체인 공유</span>
+    </a>
     <a href="{% url 'prompt-list-page' %}?ordering=-created_at" class="feature-card">
       <strong>최신 프롬프트</strong>
-      <span>방금 공유된 프롬프트 탐색</span>
+      <span>방금 공유된 콘텐츠 탐색</span>
     </a>
     <a href="{% url 'prompt-list-page' %}?ordering=-view_count" class="feature-card">
-      <strong>인기 프롬프트</strong>
-      <span>조회수가 높은 프롬프트 확인</span>
+      <strong>인기 콘텐츠</strong>
+      <span>조회수가 높은 자료 확인</span>
     </a>
     <a href="{% url 'prompt-list-page' %}?is_free=true" class="feature-card">
-      <strong>무료 프롬프트</strong>
-      <span>바로 사용할 수 있는 무료 자료</span>
+      <strong>무료 자료</strong>
+      <span>바로 사용할 수 있는 무료 콘텐츠</span>
     </a>
   </div>
 </section>

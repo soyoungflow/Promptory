@@ -1,7 +1,18 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Category, Tag, Prompt, PromptFile
+from .models import Category, RecipeCategory, Tag, Prompt, PromptFile
+
+
+@admin.register(RecipeCategory)
+class RecipeCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'recipe_count')
+    prepopulated_fields = {'slug': ('name',)}
+    search_fields = ('name',)
+
+    def recipe_count(self, obj):
+        return obj.prompts.filter(is_deleted=False, prompt_type='agent_recipe').count()
+    recipe_count.short_description = '레시피 수'
 
 
 @admin.register(Category)
@@ -43,7 +54,7 @@ class PromptFileInline(admin.TabularInline):
 class PromptAdmin(admin.ModelAdmin):
     # ── 목록 화면 ──
     list_display = (
-        'title', 'user', 'category', 'ai_model',
+        'title', 'user', 'category', 'recipe_category', 'ai_model', 'prompt_type',
         'is_free_badge', 'view_count',
         'like_count', 'comment_count',
         'deleted_status', 'created_at',

@@ -5,7 +5,7 @@ from django.conf import settings
 class LLMClient:
     def __init__(self):
         self.base_url = settings.FASTAPI_URL.rstrip('/')
-        self.timeout = httpx.Timeout(120.0, connect=10.0)
+        self.timeout = httpx.Timeout(300.0, connect=10.0)
 
     def transform(self, prompt_text: str, max_steps: int = 4) -> dict:
         with httpx.Client(timeout=self.timeout) as client:

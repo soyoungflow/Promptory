@@ -31,8 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput   = document.getElementById('search-input');
   const categoryEl    = document.getElementById('filter-category');
   const categorySidebar = document.getElementById('category-sidebar');
+  const sidebarCategorySection = document.getElementById('sidebar-category-section');
   const aiModelEl     = document.getElementById('filter-ai-model');
+  const exploreSubtitle = document.getElementById('explore-subtitle');
   const isFreeEl      = document.getElementById('filter-is-free');
+  const promptTypeEl  = document.getElementById('filter-prompt-type');
+  const typeSidebar   = document.getElementById('type-sidebar');
   const orderingEl    = document.getElementById('filter-ordering');
   const popularTagCloud = document.getElementById('popular-tag-cloud');
   const initialParams = new URLSearchParams(window.location.search);
@@ -42,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (initialParams.get('ai_model')) aiModelEl.value = initialParams.get('ai_model');
   if (initialParams.get('is_free')) isFreeEl.value = initialParams.get('is_free');
   if (initialParams.get('ordering')) orderingEl.value = initialParams.get('ordering');
+  if (initialParams.get('prompt_type') && promptTypeEl) {
+    promptTypeEl.value = initialParams.get('prompt_type');
+  }
 
   // 카테고리 목록 동적 로딩
   async function loadCategories() {
@@ -153,6 +160,42 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchPrompts();
   }
 
+  function isAgentRecipeBrowse() {
+    return (promptTypeEl?.value || '') === 'agent_recipe';
+  }
+
+  function syncExploreFiltersForType() {
+    const recipeBrowse = isAgentRecipeBrowse();
+    if (sidebarCategorySection) {
+      sidebarCategorySection.style.display = recipeBrowse ? 'none' : '';
+    }
+    if (aiModelEl) {
+      aiModelEl.style.display = recipeBrowse ? 'none' : '';
+      if (recipeBrowse) aiModelEl.value = '';
+    }
+    if (recipeBrowse && categoryEl) {
+      categoryEl.value = '';
+      categorySidebar?.querySelectorAll('.sidebar-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === '');
+      });
+    }
+    if (exploreSubtitle) {
+      exploreSubtitle.textContent = recipeBrowse
+        ? '에이전트 레시피를 검색·태그로 찾아보세요.'
+        : '단일 프롬프트를 카테고리·모델로 찾아보세요.';
+    }
+  }
+
+  function selectPromptType(typeValue, activeButton) {
+    if (promptTypeEl) promptTypeEl.value = typeValue;
+    typeSidebar?.querySelectorAll('.sidebar-item').forEach(btn => {
+      btn.classList.toggle('active', btn === activeButton);
+    });
+    syncExploreFiltersForType();
+    currentPage = 1;
+    fetchPrompts();
+  }
+
   // URL 파라미터 수집
   function buildParams() {
     const params = new URLSearchParams();
@@ -161,10 +204,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiModel  = aiModelEl.value;
     const isFree   = isFreeEl.value;
     const ordering = orderingEl.value;
+    const promptType = promptTypeEl?.value || '';
 
     if (search)   params.set('search', search);
-    if (category) params.set('category', category);
-    if (aiModel)  params.set('ai_model', aiModel);
+    if (!isAgentRecipeBrowse()) {
+      if (category) params.set('category', category);
+      if (aiModel)  params.set('ai_model', aiModel);
+    }
+    if (promptType) params.set('prompt_type', promptType);
     if (isFree)   params.set('is_free', isFree);
     if (ordering) params.set('ordering', ordering);
     if (selectedTagSlug) params.set('tag', selectedTagSlug);
@@ -173,16 +220,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 프롬프트 카드 렌더링
+  const PROMPT_TYPE_LABELS = {
+    single_prompt: '단일',
+    agent_recipe: '레시피',
+    mcp_package: 'MCP',
+  };
+  const AGENT_PATTERN_LABELS = {
+    sequential: 'Sequential',
+    react: 'ReAct',
+    reflection: 'Reflection',
+    multi_agent: 'Multi-agent',
+  };
+
   function renderCard(p) {
     const freeTag = p.is_free
       ? `<span class="tag tag-free">무료</span>`
       : `<span class="tag tag-paid">₩${Number(p.price).toLocaleString()}</span>`;
+    const isRecipe = p.prompt_type === 'agent_recipe';
+    const typeTag = isRecipe
+      ? `<span class="tag tag-agent">${PROMPT_TYPE_LABELS.agent_recipe}</span>`
+      : '';
+    const patternTag = p.agent_pattern
+      ? `<span class="tag tag-pattern">${Api.escapeHtml(AGENT_PATTERN_LABELS[p.agent_pattern] || p.agent_pattern)}</span>`
+      : '';
+    const metaTag = isRecipe
+      ? (p.recipe_category_name
+        ? `<span class="card-model">${Api.escapeHtml(p.recipe_category_name)}</span>`
+        : '')
+      : `<span class="card-model">${Api.escapeHtml(p.ai_model)}</span>`;
     const tags = (p.tags || []).map(t => `<span class="tag">#${Api.escapeHtml(t.name)}</span>`).join('');
 
     return `
       <a class="prompt-card" href="/prompts/${p.id}/">
         <div class="card-header">
-          <span class="card-model">${Api.escapeHtml(p.ai_model)}</span>
+          ${typeTag}
+          ${metaTag}
+          ${patternTag}
           ${freeTag}
         </div>
         <h3 class="card-title">${Api.escapeHtml(p.title)}</h3>
@@ -243,6 +316,12 @@ document.addEventListener('DOMContentLoaded', () => {
   categorySidebar?.querySelector('[data-category=""]')?.addEventListener('click', e => {
     selectCategory('', e.currentTarget);
   });
+  typeSidebar?.querySelectorAll('[data-prompt-type]').forEach(btn => {
+    btn.addEventListener('click', () => selectPromptType(btn.dataset.promptType || '', btn));
+    if (btn.dataset.promptType === (promptTypeEl?.value || '')) {
+      btn.classList.add('active');
+    }
+  });
   searchInput?.addEventListener('keydown', e => {
     if (e.key === 'Enter') { currentPage = 1; fetchPrompts(); }
   });
@@ -254,8 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
   [aiModelEl, isFreeEl, orderingEl].forEach(el => {
     el?.addEventListener('change', () => { currentPage = 1; fetchPrompts(); });
   });
+  promptTypeEl?.addEventListener('change', () => {
+    syncExploreFiltersForType();
+    currentPage = 1;
+    fetchPrompts();
+  });
 
   // 초기 로드
+  syncExploreFiltersForType();
   loadCategories().then(fetchPrompts);
   loadPopularTags();
 });

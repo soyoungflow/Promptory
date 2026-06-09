@@ -36,12 +36,18 @@ LLM_PROVIDER=mock
 
 ## HF 시연 (평가용만)
 
+HF 시연: **[HF_EC2_SETUP.md](./HF_EC2_SETUP.md)** (2GB EC2는 mock; HF는 **t3.medium 4GB+** 권장)
+
 ```bash
 # EC2 .env
 LLM_PROVIDER=huggingface
+HF_MODEL_NAME=LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct
+HF_EMBEDDING_MODEL=jhgan/ko-sroberta-multitask
+HF_TORCH_DTYPE=float16
+docker compose build ai_server && docker compose up -d ai_server celery_worker
 ```
 
-HF 의존성이 포함된 `ai_server` 이미지로 재빌드 후, 첫 모델 다운로드에 10~15분 소요될 수 있습니다. 리허설은 **mock**(기본값) 사용을 권장합니다.
+리허설·본 발표 흐름은 **mock** 유지 권장. HF는 짧은 시연 또는 `/ai/docs`용.
 
 ## 21단계 시연 스크립트 (요약)
 

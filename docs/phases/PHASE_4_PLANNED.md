@@ -143,7 +143,7 @@ sequenceDiagram
 | Task | 대상 | 비고 |
 |------|------|------|
 | ASGI | `config/asgi.py`, `tasks/consumers.py` | daphne on `web` |
-| 문서 | `docs/troubleshooting.md` | WBS 8시나리오 (선택) |
+| 문서 | `docs/troubleshooting.md` | WBS 8시나리오 (작성 완료) |
 | 부하 테스트 | `docs/load_test.py` (locust) | 선택 |
 | 시연 | Mock vs HF 전체 실행 | |
 
