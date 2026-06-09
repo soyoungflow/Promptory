@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (!items?.length) {
-      transformsList.innerHTML = '<div class="empty-state">변환된 프롬프트가 없습니다.</div>';
+      transformsList.innerHTML = '<div class="empty-state">생성된 설계서가 없습니다.</div>';
       return;
     }
     transformsList.innerHTML = items.map(row => {
@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (transforms) {
-      transformsCount.textContent = `내 변환 ${transforms.length}개`;
+      transformsCount.textContent = `내 설계서 ${transforms.length}개`;
       renderTransforms(transforms);
     } else {
       transformsCount.textContent = '';

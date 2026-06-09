@@ -37,12 +37,12 @@
 
   <!-- Phase 4: AI 에이전트 변환 (작성자 도구 — 레시피 상세에서만) -->
   <div class="agent-transform-section" id="agent-section" style="display:none;">
-    <h3 class="section-title">AI 워크플로 초안 <span class="tag tag-sm">작성자 도구</span></h3>
+    <h3 class="section-title">AI 업무 자동화 설계서 생성 <span class="tag tag-sm">작성자 도구</span></h3>
     <p class="section-hint">
-      <strong>레시피 작성자</strong>가 시스템 프롬프트·컨텍스트를 AI가 4단계 워크플로 <em>초안</em>으로 분해해 줍니다.
-      방문자에게는 보이지 않으며, 수동 워크플로 편집의 참고용입니다.
+      <strong>레시피 작성자</strong>가 시스템 프롬프트를 <strong>5-Layer Agent Blueprint</strong>로 자동 변환합니다.
+      자동화 단계 · 참고 자료 · 연결 방식 · 운영 가이드 · 완료 판단 기준.
     </p>
-    <button type="button" class="btn btn-primary" id="transform-btn">에이전트로 변환하기</button>
+    <button type="button" class="btn btn-primary" id="transform-btn">설계서로 변환하기</button>
     <div id="transform-status" class="transform-status" style="display:none;">
       <div class="loading-spinner" style="margin:12px 0;"></div>
       <p>변환 중… <span id="elapsed">0</span>초</p>
@@ -55,13 +55,19 @@
           <span id="overall-pattern">Sequential</span>
         </div>
         <p class="strategy-line">
-          <strong>Context:</strong> <span id="context-summary"></span>
+          <strong>참고:</strong> <span id="knowledge-summary"></span>
         </p>
         <p class="strategy-line">
-          <strong>Harness:</strong> <span id="harness-summary"></span>
+          <strong>연결:</strong> <span id="context-summary"></span>
+        </p>
+        <p class="strategy-line">
+          <strong>운영:</strong> <span id="harness-summary"></span>
+        </p>
+        <p class="strategy-line">
+          <strong>검증:</strong> <span id="quality-summary"></span>
         </p>
       </div>
-      <h4 class="transform-steps-title">4단계 에이전트 워크플로우</h4>
+      <h4 class="transform-steps-title" id="blueprint-title">AI 업무 자동화 설계서 (5-Layer)</h4>
       <ol id="agent-steps" class="agent-steps"></ol>
       <p class="transform-result-label">신뢰도: <strong id="confidence">—</strong></p>
     </div>
@@ -96,5 +102,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/prompt-detail.js' %}?v=20260609b"></script>
+<script src="{% static 'js/prompt-detail.js' %}?v=20260609c"></script>
 {% endblock %}

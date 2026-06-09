@@ -43,6 +43,14 @@ AGENT_RECIPE_WORKFLOW = [
             "timeout_seconds": 45, "max_retries": 3,
             "fallback_action": "use_default", "cost_budget_tokens": 3000,
         },
+        "knowledge_refs": [
+            {"type": "api", "source": "네이버 블로그 검색 API", "usage": "always", "description": "국내 최신 트렌드 확보"},
+        ],
+        "verification_criteria": {
+            "success_signals": ["URL 5개 이상", "발행일 1년 이내"],
+            "failure_signals": ["검색 결과 0건"],
+            "evaluator": "rule", "min_quality_score": 0.7, "on_fail": "retry",
+        },
     },
     {
         "step": 2, "name": "개요",
@@ -57,6 +65,14 @@ AGENT_RECIPE_WORKFLOW = [
             "timeout_seconds": 20, "max_retries": 2,
             "validation_schema": "outline_v1.json", "cost_budget_tokens": 1500,
         },
+        "knowledge_refs": [
+            {"type": "document", "source": "SEO 키워드 베스트프랙티스", "usage": "always", "description": "SEO 친화적 헤딩 구조"},
+        ],
+        "verification_criteria": {
+            "success_signals": ["H2 3개 이상", "각 H2 아래 H3 2개 이상"],
+            "failure_signals": ["헤딩 없음"],
+            "evaluator": "rule", "min_quality_score": 0.75, "on_fail": "retry",
+        },
     },
     {
         "step": 3, "name": "초안",
@@ -69,6 +85,14 @@ AGENT_RECIPE_WORKFLOW = [
         },
         "harness_policy": {
             "timeout_seconds": 60, "max_retries": 2, "cost_budget_tokens": 4000,
+        },
+        "knowledge_refs": [
+            {"type": "document", "source": "브랜드 톤매뉴얼.pdf", "usage": "always", "description": "일관된 브랜드 보이스 유지"},
+        ],
+        "verification_criteria": {
+            "success_signals": ["섹션당 300자 이상", "브랜드 톤 일치"],
+            "failure_signals": ["TODO 포함", "반복 문장"],
+            "evaluator": "llm_judge", "min_quality_score": 0.7, "on_fail": "retry",
         },
     },
     {
@@ -83,6 +107,14 @@ AGENT_RECIPE_WORKFLOW = [
         "harness_policy": {
             "timeout_seconds": 30, "max_retries": 1,
             "fallback_action": "skip_step", "cost_budget_tokens": 2000,
+        },
+        "knowledge_refs": [
+            {"type": "api", "source": "맞춤법 검사 API", "usage": "always", "description": "문법 오류 자동 검출"},
+        ],
+        "verification_criteria": {
+            "success_signals": ["수정 제안 1개 이상", "문법 오류 0건"],
+            "failure_signals": ["근거 없는 제안"],
+            "evaluator": "llm_judge", "min_quality_score": 0.8, "on_fail": "escalate",
         },
     },
 ]

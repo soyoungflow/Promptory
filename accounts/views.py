@@ -89,6 +89,7 @@ class MyTransformationListView(APIView):
                 'overall_pattern': latest.overall_pattern,
                 'context_strategy_summary': latest.context_strategy_summary,
                 'harness_strategy_summary': latest.harness_strategy_summary,
+                'quality_strategy_summary': latest.quality_strategy_summary,
                 'created_at': latest.created_at,
                 'task_id': latest_task.task_id if latest_task else None,
             })

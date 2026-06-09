@@ -10,6 +10,7 @@ class AgentTransformationSerializer(serializers.ModelSerializer):
             'id', 'prompt', 'decomposed_steps', 'suggested_tools',
             'system_messages', 'confidence_score', 'model_used', 'created_at',
             'overall_pattern', 'context_strategy_summary', 'harness_strategy_summary',
+            'quality_strategy_summary',
         )
 
 
@@ -45,5 +46,6 @@ class MyTransformationSerializer(serializers.Serializer):
     overall_pattern = serializers.CharField(required=False, allow_blank=True)
     context_strategy_summary = serializers.CharField(required=False, allow_blank=True)
     harness_strategy_summary = serializers.CharField(required=False, allow_blank=True)
+    quality_strategy_summary = serializers.CharField(required=False, allow_blank=True)
     created_at = serializers.DateTimeField()
     task_id = serializers.UUIDField(allow_null=True)

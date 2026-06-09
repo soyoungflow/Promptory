@@ -6,7 +6,7 @@
 |----|------|
 | Q1 | **EC2 + Docker Compose** (7서비스). 4차 시연 주 호스트는 Vercel 아님. |
 | Q2 | `/prompts/{id}/` **인라인만** — `/prompts/{id}/agent/` 템플릿 라우트 없음. |
-| Q3 | 보관함 탭 **「내 변환」** = 소유 프롬프트당 최신 `AgentTransformation` 1건; **`GET /api/accounts/me/transformations/`** |
+| Q3 | 보관함 탭 **「내 설계서」** = 소유 프롬프트당 최신 `AgentTransformation` 1건; **`GET /api/accounts/me/transformations/`** |
 | Q4 | **`AnalysisResult` MVP 제외** (analyze 태스크/API 없음). |
 | Q5 | **`PromptEmbedding.vector` JSON** + numpy 코사인 유사도. |
 | Q6 | **`Task.result_id` + `task_type`** (GenericForeignKey 없음). |
@@ -17,6 +17,7 @@
 | Q11 | **WebSocket** 태스크 알림 + `prompt-detail.js` **폴링 fallback**. |
 | Q12 | phase 문서는 **3·4차만** 다룸. |
 | Q13 | **Context Policy + Harness Policy** 풀세트 — 변환 단계마다 자동 생성·DB 저장·상세 UI 표시. 정책 **실제 실행**(요약·벡터 query·재시도)은 출시 후 로드맵. |
+| Q14 | **5-Layer Agent Blueprint** + 서비스 리포지셔닝 — Knowledge References·Verification Criteria 추가, UI 한국어 번역, 「AI 업무 자동화 설계서」 카피. |
 
 ## Q13. Context Policy + Harness Policy 메타데이터 (Option 3)
 
@@ -29,3 +30,23 @@
 - 정책 실제 실행 (요약, 벡터 query, 재시도 정밀 적용) — 5차/출시 후 로드맵
 
 **근거**: 3차 발표 피드백("하네스를 공유하는 쪽으로 발전") 정면 답변.
+
+## Q14. 옵션 4: 5-Layer Agent Blueprint + 서비스 리포지셔닝
+
+**결정**: 풀세트 채택. 옵션 3의 3-Layer에 Knowledge References와 Verification Criteria를 추가하여 5-Layer Blueprint 완성. 동시에 서비스를 "프롬프트 마켓"에서 **"AI 업무 자동화 설계서 마켓플레이스"** 로 점진 리포지셔닝.
+
+**5-Layer 구성**:
+1. Agent Design (자동화 단계)
+2. Knowledge References (참고 자료)
+3. Context Policy (연결 방식)
+4. Harness Policy (운영 가이드)
+5. Verification Criteria (완료 판단 기준)
+
+**MVP 범위**:
+- 5-Layer 모두 자동 생성 (LLM 또는 mock)
+- DB 저장 (`decomposed_steps` JSON + `quality_strategy_summary`)
+- UI 표시 (`prompt-detail.js` I18N 사전)
+- 서비스 카피 전환 (헤더, hero, README, 보관함 「내 설계서」)
+- 정책 실제 실행 — 5차/출시 후
+
+**UX 원칙**: DB/API는 영문 코드, 화면은 한국어 풀어쓰기. "프롬프트" 단어는 완전 제거하지 않음.

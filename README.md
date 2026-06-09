@@ -1,6 +1,9 @@
-# Promptory
+# Promptory — AI 업무 자동화 설계서 마켓플레이스
 
-AI 프롬프트 공유·판매 서비스 — Django 4.2 + DRF + JWT + PostgreSQL
+> 단일 프롬프트를 **5-Layer Agent Blueprint**로 자동 변환합니다.
+> 자동화 단계 · 참고 자료 · 연결 방식 · 운영 가이드 · 완료 판단 기준 — 모두 한 패키지에.
+
+Django 4.2 + DRF + JWT + PostgreSQL
 
 [![Django CI](https://github.com/soyoungflow/Promptory/actions/workflows/ci.yml/badge.svg)](https://github.com/soyoungflow/Promptory/actions/workflows/ci.yml)
 

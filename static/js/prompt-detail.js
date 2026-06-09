@@ -38,26 +38,114 @@ document.addEventListener('DOMContentLoaded', () => {
     multi_agent: 'Multi-agent',
   };
 
-  function renderStepPolicies(s) {
+  const I18N = {
+    previous_output: {
+      full: '이전 결과 전체 전달',
+      summarize_500: '500자 요약 전달',
+      selective: '핵심만 추출 전달',
+      vector_query: '벡터 DB 검색 후 필요한 부분만',
+      none: '이전 결과 사용 안 함',
+    },
+    memory_scope: {
+      this_step_only: '이 단계만',
+      all_previous: '이전 모든 단계 참고',
+      user_session: '사용자 세션 전체',
+    },
+    fallback_action: {
+      skip_step: '실패 시 건너뛰기',
+      use_default: '실패 시 기본값 사용',
+      fail_fast: '즉시 중단',
+    },
+    pattern: {
+      Sequential: '순차 실행',
+      ReAct: '판단·실행 반복',
+      Reflection: '자기 검토',
+      MultiAgent: '멀티 에이전트',
+    },
+    evaluator: {
+      rule: '규칙 기반 자동',
+      llm_judge: 'AI 자동 채점',
+      human: '사람 검토 필요',
+      none: '검증 없음',
+    },
+    on_fail: {
+      retry: '재시도',
+      skip: '건너뛰기',
+      escalate: '상위 보고',
+    },
+    knowledge_type: {
+      url: '웹 링크',
+      document: '문서',
+      dataset: '데이터셋',
+      api: 'API',
+      rag_collection: '지식 베이스',
+    },
+    knowledge_usage: {
+      always: '항상 참고',
+      if_needed: '필요 시',
+      fallback: '대체용',
+    },
+  };
+
+  function t(category, value) {
+    return I18N[category]?.[value] || value;
+  }
+
+  function renderBlueprintStepDetails(s) {
     const cp = s.context_policy || {};
     const hp = s.harness_policy || {};
-    if (!cp.previous_output_strategy && !hp.timeout_seconds) return '';
+    const krefs = s.knowledge_refs || [];
+    const vc = s.verification_criteria || {};
     return `
-      <details class="step-policy">
-        <summary>컨텍스트 정책</summary>
+      ${krefs.length ? `
+      <details class="step-policy" open>
+        <summary>참고 자료 (${krefs.length}개)</summary>
         <div class="policy-block">
-          <div><span class="policy-key">전달 방식:</span> ${Api.escapeHtml(cp.previous_output_strategy || 'full')}</div>
-          <div><span class="policy-key">메모리 범위:</span> ${Api.escapeHtml(cp.memory_scope || 'all_previous')}</div>
+          ${krefs.map(k => `
+            <div class="knowledge-item">
+              <span class="kn-type">${Api.escapeHtml(t('knowledge_type', k.type || 'document'))}</span>
+              <strong>${Api.escapeHtml(k.source || '')}</strong>
+              <span class="kn-usage">(${Api.escapeHtml(t('knowledge_usage', k.usage || 'always'))})</span>
+              ${k.description ? `<div class="kn-desc">${Api.escapeHtml(k.description)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </details>` : ''}
+      <details class="step-policy">
+        <summary>연결 방식 (이전 단계 → 이 단계)</summary>
+        <div class="policy-block">
+          <div><span class="policy-key">전달 방식:</span> ${Api.escapeHtml(t('previous_output', cp.previous_output_strategy || 'full'))}</div>
+          <div><span class="policy-key">참고 범위:</span> ${Api.escapeHtml(t('memory_scope', cp.memory_scope || 'all_previous'))}</div>
           ${cp.reason ? `<div class="policy-reason">${Api.escapeHtml(cp.reason)}</div>` : ''}
         </div>
       </details>
       <details class="step-policy">
-        <summary>하네스 정책</summary>
+        <summary>운영 가이드</summary>
         <div class="policy-block">
-          <div><span class="policy-key">타임아웃:</span> ${hp.timeout_seconds || 30}초</div>
-          <div><span class="policy-key">재시도:</span> ${hp.max_retries ?? 2}회</div>
-          <div><span class="policy-key">실패 시:</span> ${Api.escapeHtml(hp.fallback_action || 'skip_step')}</div>
-          <div><span class="policy-key">예산:</span> ${hp.cost_budget_tokens || 2000} 토큰</div>
+          <div><span class="policy-key">제한 시간:</span> ${hp.timeout_seconds || 30}초</div>
+          <div><span class="policy-key">재시도:</span> 최대 ${hp.max_retries ?? 2}번</div>
+          <div><span class="policy-key">실패 처리:</span> ${Api.escapeHtml(t('fallback_action', hp.fallback_action || 'skip_step'))}</div>
+          <div><span class="policy-key">사용 예산:</span> ${(hp.cost_budget_tokens || 2000).toLocaleString()} 토큰</div>
+        </div>
+      </details>
+      <details class="step-policy">
+        <summary>완료 판단 기준</summary>
+        <div class="policy-block">
+          ${(vc.success_signals || []).length ? `
+            <div><span class="policy-key">성공 신호:</span></div>
+            <ul class="signal-list signal-ok">
+              ${vc.success_signals.map(sig => `<li>${Api.escapeHtml(sig)}</li>`).join('')}
+            </ul>
+          ` : ''}
+          ${(vc.failure_signals || []).length ? `
+            <div><span class="policy-key">실패 신호:</span></div>
+            <ul class="signal-list signal-bad">
+              ${vc.failure_signals.map(sig => `<li>${Api.escapeHtml(sig)}</li>`).join('')}
+            </ul>
+          ` : ''}
+          <div><span class="policy-key">검증 방식:</span> ${Api.escapeHtml(t('evaluator', vc.evaluator || 'rule'))}</div>
+          <div><span class="policy-key">최소 품질:</span> ${Math.round((vc.min_quality_score || 0.7) * 100)}점</div>
+          <div><span class="policy-key">미달 시:</span> ${Api.escapeHtml(t('on_fail', vc.on_fail || 'retry'))}</div>
         </div>
       </details>
     `;
@@ -75,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
               ${s.tool ? `<span class="tag tag-tool">${Api.escapeHtml(s.tool)}</span>` : ''}
             </div>
             <p class="recipe-step-msg">${Api.escapeHtml(s.system_message || '')}</p>
-            ${renderStepPolicies(s)}
+            ${renderBlueprintStepDetails(s)}
             ${s.code ? `<pre class="recipe-step-code">${Api.escapeHtml(s.code)}</pre>` : ''}
           </li>
         `).join('')}
@@ -103,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const workflowHtml = isRecipe && (p.workflow_steps || []).length
         ? `
           <div class="recipe-workflow-section">
-            <h3 class="section-title">에이전트 워크플로</h3>
+            <h3 class="section-title">자동화 단계 (5-Layer Blueprint)</h3>
             ${patternLabel ? `<p class="recipe-pattern"><span class="tag tag-agent">패턴: ${Api.escapeHtml(patternLabel)}</span></p>` : ''}
             ${renderWorkflowSteps(p.workflow_steps)}
           </div>
@@ -339,22 +427,38 @@ document.addEventListener('DOMContentLoaded', () => {
       transformResult.style.display = 'none';
       transformError.style.display = '';
       transformError.textContent =
-        '변환은 완료됐지만 단계가 비어 있습니다. 다시 「에이전트로 변환하기」를 눌러 주세요.';
+        '변환은 완료됐지만 단계가 비어 있습니다. 다시 「설계서로 변환하기」를 눌러 주세요.';
       return;
     }
     transformError.style.display = 'none';
     transformResult.style.display = '';
     const overallPatternEl = document.getElementById('overall-pattern');
+    const knowledgeSummaryEl = document.getElementById('knowledge-summary');
     const contextSummaryEl = document.getElementById('context-summary');
     const harnessSummaryEl = document.getElementById('harness-summary');
+    const qualitySummaryEl = document.getElementById('quality-summary');
     if (overallPatternEl) {
-      overallPatternEl.textContent = agent.overall_pattern || 'Sequential';
+      overallPatternEl.textContent = t('pattern', agent.overall_pattern || 'Sequential');
+    }
+    const knowledgeSet = new Set();
+    steps.forEach(s => {
+      (s.knowledge_refs || []).forEach(k => {
+        if (k.source) knowledgeSet.add(k.source);
+      });
+    });
+    if (knowledgeSummaryEl) {
+      knowledgeSummaryEl.textContent = knowledgeSet.size
+        ? Array.from(knowledgeSet).join(', ')
+        : '범용 도구 사용';
     }
     if (contextSummaryEl) {
       contextSummaryEl.textContent = agent.context_strategy_summary || '—';
     }
     if (harnessSummaryEl) {
       harnessSummaryEl.textContent = agent.harness_strategy_summary || '—';
+    }
+    if (qualitySummaryEl) {
+      qualitySummaryEl.textContent = agent.quality_strategy_summary || '—';
     }
     const stepsEl = document.getElementById('agent-steps');
     stepsEl.innerHTML = steps.map(s => `
@@ -364,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${s.tool ? `<span class="step-tool">${Api.escapeHtml(s.tool)}</span>` : ''}
         </div>
         <p class="step-instruction">${Api.escapeHtml(s.system_message || '')}</p>
-        ${renderStepPolicies(s)}
+        ${renderBlueprintStepDetails(s)}
       </li>
     `).join('');
     document.getElementById('confidence').textContent =

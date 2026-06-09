@@ -22,6 +22,9 @@ class AgentTransformation(models.Model):
     )
     context_strategy_summary = models.CharField(max_length=200, blank=True, default='')
     harness_strategy_summary = models.CharField(max_length=200, blank=True, default='')
+    quality_strategy_summary = models.CharField(
+        max_length=200, blank=True, default='', verbose_name='검증 전략 요약',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

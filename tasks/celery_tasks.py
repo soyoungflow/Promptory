@@ -54,6 +54,7 @@ def transform_prompt(self, task_id: str, prompt_id: int):
             overall_pattern=result.get('overall_pattern', 'Sequential'),
             context_strategy_summary=result.get('context_strategy_summary', ''),
             harness_strategy_summary=result.get('harness_strategy_summary', ''),
+            quality_strategy_summary=result.get('quality_strategy_summary', ''),
         )
 
         agent_transformation_total.labels(

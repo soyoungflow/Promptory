@@ -25,6 +25,27 @@ class HarnessPolicy(BaseModel):
     rate_limit: str = Field(default='10/min')
 
 
+class KnowledgeRef(BaseModel):
+    type: Literal['url', 'document', 'dataset', 'api', 'rag_collection'] = 'document'
+    source: str = Field(default='', description='자료 출처 식별자')
+    usage: Literal['always', 'if_needed', 'fallback'] = 'always'
+    description: str = Field(default='', description='이 자료가 왜 필요한지 한 줄')
+
+
+class VerificationCriteria(BaseModel):
+    success_signals: List[str] = Field(
+        default_factory=list,
+        description="성공 신호 (예: 'URL 5개 이상', 'H2 3개 포함')",
+    )
+    failure_signals: List[str] = Field(
+        default_factory=list,
+        description="실패 신호 (예: 'TODO 단어 포함', '100자 미만')",
+    )
+    evaluator: Literal['rule', 'llm_judge', 'human', 'none'] = 'rule'
+    min_quality_score: float = Field(default=0.7, ge=0.0, le=1.0)
+    on_fail: Literal['retry', 'skip', 'escalate'] = 'retry'
+
+
 class StepSpec(BaseModel):
     step: int
     name: str
@@ -32,6 +53,8 @@ class StepSpec(BaseModel):
     tool: str = ''
     context_policy: ContextPolicy = Field(default_factory=ContextPolicy)
     harness_policy: HarnessPolicy = Field(default_factory=HarnessPolicy)
+    knowledge_refs: List[KnowledgeRef] = Field(default_factory=list)
+    verification_criteria: VerificationCriteria = Field(default_factory=VerificationCriteria)
 
 
 class TransformResponse(BaseModel):
@@ -43,6 +66,7 @@ class TransformResponse(BaseModel):
     overall_pattern: Literal['Sequential', 'ReAct', 'Reflection', 'MultiAgent'] = 'Sequential'
     context_strategy_summary: str = Field(default='', description='전체 컨텍스트 전략 한 줄 요약')
     harness_strategy_summary: str = Field(default='', description='전체 하네스 전략 한 줄 요약')
+    quality_strategy_summary: str = Field(default='', description='전체 검증 전략 한 줄 요약')
 
 
 class EmbedRequest(BaseModel):

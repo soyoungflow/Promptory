@@ -5,8 +5,10 @@ from schemas import (
     ContextPolicy,
     EmbedResponse,
     HarnessPolicy,
+    KnowledgeRef,
     StepSpec,
     TransformResponse,
+    VerificationCriteria,
 )
 
 MOCK_STEPS = [
@@ -26,6 +28,23 @@ MOCK_STEPS = [
             cost_budget_tokens=3000,
             rate_limit='5/min',
         ),
+        knowledge_refs=[
+            KnowledgeRef(
+                type='api', source='네이버 블로그 검색 API',
+                usage='always', description='국내 최신 트렌드 확보',
+            ),
+            KnowledgeRef(
+                type='api', source='구글 학술 검색',
+                usage='if_needed', description='학술적 근거 필요 시',
+            ),
+        ],
+        verification_criteria=VerificationCriteria(
+            success_signals=['URL 5개 이상 수집', '발행일 1년 이내', '서로 다른 출처 3개 이상'],
+            failure_signals=['검색 결과 0건', '동일 도메인만 반환'],
+            evaluator='rule',
+            min_quality_score=0.7,
+            on_fail='retry',
+        ),
     ),
     StepSpec(
         step=2, name='개요',
@@ -42,6 +61,19 @@ MOCK_STEPS = [
             validation_schema='outline_v1.json',
             cost_budget_tokens=1500,
         ),
+        knowledge_refs=[
+            KnowledgeRef(
+                type='document', source='SEO 키워드 베스트프랙티스',
+                usage='always', description='SEO 친화적 헤딩 구조',
+            ),
+        ],
+        verification_criteria=VerificationCriteria(
+            success_signals=['H2 3개 이상', '각 H2 아래 H3 2개 이상', '논리적 흐름'],
+            failure_signals=['헤딩 없음', '계층 깨짐'],
+            evaluator='rule',
+            min_quality_score=0.75,
+            on_fail='retry',
+        ),
     ),
     StepSpec(
         step=3, name='초안',
@@ -56,6 +88,19 @@ MOCK_STEPS = [
             timeout_seconds=60,
             max_retries=2,
             cost_budget_tokens=4000,
+        ),
+        knowledge_refs=[
+            KnowledgeRef(
+                type='document', source='브랜드 톤매뉴얼.pdf',
+                usage='always', description='일관된 브랜드 보이스 유지',
+            ),
+        ],
+        verification_criteria=VerificationCriteria(
+            success_signals=['섹션당 300자 이상', '브랜드 톤 일치', '키워드 자연 삽입'],
+            failure_signals=['Lorem ipsum 포함', 'TODO 포함', '반복 문장'],
+            evaluator='llm_judge',
+            min_quality_score=0.7,
+            on_fail='retry',
         ),
     ),
     StepSpec(
@@ -73,6 +118,23 @@ MOCK_STEPS = [
             fallback_action='skip_step',
             cost_budget_tokens=2000,
         ),
+        knowledge_refs=[
+            KnowledgeRef(
+                type='api', source='맞춤법 검사 API',
+                usage='always', description='문법 오류 자동 검출',
+            ),
+            KnowledgeRef(
+                type='dataset', source='팩트체크 데이터셋',
+                usage='if_needed', description='주장 검증',
+            ),
+        ],
+        verification_criteria=VerificationCriteria(
+            success_signals=['수정 제안 1개 이상', '각 제안에 근거', '문법 오류 0건'],
+            failure_signals=['수정 사항 없음으로 응답', '근거 없는 제안'],
+            evaluator='llm_judge',
+            min_quality_score=0.8,
+            on_fail='escalate',
+        ),
     ),
 ]
 
@@ -87,6 +149,7 @@ def mock_transform(prompt_text: str) -> TransformResponse:
         overall_pattern='Sequential',
         context_strategy_summary='리서치 결과는 요약, 개요는 전체 전달, 검토는 선택적',
         harness_strategy_summary='리서치 단계만 긴 타임아웃 + 재시도 3회, 나머지는 표준',
+        quality_strategy_summary='리서치는 규칙 검증, 초안/검토는 LLM judge로 품질 0.7~0.8 보장',
     )
 
 

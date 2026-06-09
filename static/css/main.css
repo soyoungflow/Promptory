@@ -33,6 +33,12 @@ a:hover { text-decoration: none; }
 .nav-inner { max-width: 1180px; margin: 0 auto; padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .nav-left { display: flex; align-items: center; gap: 28px; }
 .nav-logo { font-size: 16px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); }
+.nav-logo.brand { display: flex; flex-direction: column; line-height: 1.1; text-decoration: none; }
+.brand-name { font-weight: 700; font-size: 16px; color: #185FA5; }
+.brand-tagline { font-size: 10px; color: #5F5E5A; font-weight: 400; }
+@media (max-width: 640px) {
+  .brand-tagline { display: none; }
+}
 .nav-links { display: flex; align-items: center; gap: 4px; }
 .nav-link, .nav-links > span > a { padding: 6px 12px; border-radius: 6px; font-size: 13px; color: var(--text-muted); }
 .nav-link:hover, .nav-link.active, .nav-links > span > a:hover { background: var(--accent-soft); color: var(--text); }
@@ -384,6 +390,61 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-hover); b
   border-top: 1px dashed #E0DED7;
   color: #534AB7;
   font-style: italic;
+}
+.knowledge-item {
+  padding: 6px 0;
+  border-bottom: 1px dashed #E0DED7;
+}
+.knowledge-item:last-child { border-bottom: none; }
+.kn-type {
+  display: inline-block;
+  background: #E1F5EE;
+  color: #0F6E56;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-right: 6px;
+}
+.kn-usage { color: #5F5E5A; font-size: 12px; margin-left: 6px; }
+.kn-desc {
+  margin-top: 4px;
+  color: #5F5E5A;
+  font-size: 12px;
+  padding-left: 8px;
+  border-left: 2px solid #E0DED7;
+}
+.signal-list {
+  list-style: none;
+  padding-left: 8px;
+  margin: 4px 0 8px 0;
+}
+.signal-list li {
+  padding: 2px 0;
+  font-size: 12px;
+  padding-left: 18px;
+  position: relative;
+}
+.signal-ok li::before {
+  content: '✓';
+  color: #3B6D11;
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+.signal-bad li::before {
+  content: '✗';
+  color: #A32D2D;
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+#blueprint-title {
+  background: linear-gradient(90deg, #185FA5 0%, #534AB7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  font-size: 18px;
 }
 
 .agent-recipe-fields {

@@ -13,7 +13,10 @@
 <nav class="navbar">
   <div class="nav-inner">
     <div class="nav-left">
-      <a href="{% url 'home-page' %}" class="nav-logo">Promptory</a>
+      <a href="{% url 'home-page' %}" class="nav-logo brand">
+        <span class="brand-name">Promptory</span>
+        <span class="brand-tagline">AI 업무 자동화 설계서</span>
+      </a>
       <div class="nav-links">
         <a href="{% url 'home-page' %}" class="nav-link {% if request.resolver_match.url_name == 'home-page' %}active{% endif %}">홈</a>
         <a href="{% url 'prompt-list-page' %}" class="nav-link {% if request.resolver_match.url_name == 'prompt-list-page' %}active{% endif %}">탐색</a>
@@ -40,7 +43,7 @@
 </main>
 
 <footer class="footer">
-  <p>Promptory © 2026 — AI 프롬프트 공유 플랫폼</p>
+  <p>Promptory © 2026 — AI 업무 자동화 설계서 마켓플레이스</p>
 </footer>
 
 <!-- 전역 상태 (Django → JS 전달) -->
