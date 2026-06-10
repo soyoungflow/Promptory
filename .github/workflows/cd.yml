@@ -162,6 +162,10 @@ jobs:
               exit 1
             fi
 
+            echo "=== [8b/9] Collect static files (admin CSS 등) ==="
+            docker compose exec -T web python manage.py collectstatic --noinput
+            docker compose up -d --force-recreate nginx
+
             echo "=== [9/9] Post-deploy smoke check ==="
             docker compose ps
             curl -fsS --retry 8 --retry-connrefused --retry-all-errors --retry-delay 3 \
@@ -170,6 +174,8 @@ jobs:
               http://127.0.0.1/ai/health >/dev/null
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
               http://127.0.0.1/static/css/main.css >/dev/null
+            curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
+              http://127.0.0.1/static/admin/css/base.css >/dev/null
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
               http://127.0.0.1/grafana/api/health | grep -qE '"database"[[:space:]]*:[[:space:]]*"ok"'
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
