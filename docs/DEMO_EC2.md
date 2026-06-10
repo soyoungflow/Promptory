@@ -62,6 +62,19 @@ docker compose build ai_server && docker compose up -d ai_server celery_worker
 9. `http://<EC2_HOST>/prometheus/` targets UP, Grafana 대시보드
 10. Admin → Task / AgentTransformation 행 확인
 
+## 디스크 (CD 실패 시)
+
+EC2 기본 8GB EBS는 HF 이미지 재빌드 시 **디스크 부족**이 날 수 있습니다.
+
+```bash
+# SSH 접속 후
+docker compose down
+docker builder prune -af && docker system prune -af
+df -h /
+```
+
+여유가 2GB 미만이면 EBS를 **20GB** 이상으로 확장하세요. 상세: [troubleshooting.md §9](./troubleshooting.md#9-cd-배포-실패--no-space-left-on-device)
+
 ## 보안 그룹
 
 **인바운드 TCP 80** 만 열면 됩니다 (시연용 Source: `0.0.0.0/0` 또는 `내 IP/32`).

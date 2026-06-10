@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return `
       ${krefs.length ? `
       <details class="step-policy" open>
-        <summary>참고 자료 (${krefs.length}개)</summary>
+        <summary>📚 참고 자료 (${krefs.length}개)</summary>
         <div class="policy-block">
           ${krefs.map(k => `
             <div class="knowledge-item">
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </details>` : ''}
       <details class="step-policy">
-        <summary>연결 방식 (이전 단계 → 이 단계)</summary>
+        <summary>🎯 이전 단계와 어떻게 연결되나요?</summary>
         <div class="policy-block">
           <div><span class="policy-key">전달 방식:</span> ${Api.escapeHtml(t('previous_output', cp.previous_output_strategy || 'full'))}</div>
           <div><span class="policy-key">참고 범위:</span> ${Api.escapeHtml(t('memory_scope', cp.memory_scope || 'all_previous'))}</div>
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </details>
       <details class="step-policy">
-        <summary>운영 가이드</summary>
+        <summary>🔧 안전하게 실행하기</summary>
         <div class="policy-block">
           <div><span class="policy-key">재시도:</span> ${hp.max_retries ?? 0}회</div>
           <div><span class="policy-key">실패 시:</span> ${Api.escapeHtml(t('fallback_action', hp.fallback_action || 'fail_fast'))}</div>
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </details>
       ${vc.evaluator && vc.evaluator !== 'none' ? `
       <details class="step-policy">
-        <summary>완료 판단</summary>
+        <summary>✅ 잘 됐는지 어떻게 알 수 있나요?</summary>
         <div class="policy-block">
           <div><span class="policy-key">방식:</span> ${Api.escapeHtml(t('evaluator', vc.evaluator))}</div>
           ${vc.criteria ? `<div class="policy-reason">${Api.escapeHtml(vc.criteria)}</div>` : ''}
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (Date.now() - started > maxWait) {
         clearInterval(pollTimer);
-        showPageError('설계 시간이 초과되었습니다. 잠시 후 새로고침해 주세요.');
+        showPageError('예상보다 오래 걸리네요. 다시 시도하거나 잠시 후 새로고침해 주세요.');
       }
     }, 1500);
   }

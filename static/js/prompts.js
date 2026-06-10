@@ -297,7 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
       countEl.textContent = `총 ${data.count || 0}개`;
 
       if (!results.length) {
-        grid.innerHTML = '<div class="empty-state">검색 결과가 없습니다.</div>';
+        const q = (document.getElementById('search-input')?.value || '').trim();
+        const msg = q
+          ? `'${Api.escapeHtml(q)}'로 찾은 결과가 없어요. 다른 키워드로 시도해보거나, 새 프롬프트를 등록해보세요.`
+          : '조건에 맞는 결과가 없어요. 필터를 바꾸거나 새 프롬프트를 등록해보세요.';
+        grid.innerHTML = `<div class="empty-state">${msg}</div>`;
         pagination.innerHTML = '';
         return;
       }

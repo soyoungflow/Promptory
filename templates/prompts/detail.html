@@ -16,10 +16,10 @@
   <div class="action-bar" id="action-bar" style="display:none;">
     <button class="btn btn-like" id="like-btn">
       <span class="like-icon">♥</span>
-      좋아요 <span id="like-count">0</span>
+      도움됐어요 <span id="like-count">0</span>
     </button>
     <button class="btn btn-bookmark" id="bookmark-btn">
-      <span class="bookmark-icon">🔖</span> 북마크
+      <span class="bookmark-icon">🔖</span> 저장
     </button>
     <!-- 작성자 전용 액션 (JS가 조건부 렌더링) -->
     <div id="author-actions" style="display:none;">
@@ -40,14 +40,14 @@
     <h3 class="section-title">댓글 <span id="comment-count"></span></h3>
 
     <form id="comment-form" class="comment-form" novalidate>
-      <textarea id="comment-content" class="comment-input" placeholder="댓글을 입력하세요..." rows="3"></textarea>
+      <textarea id="comment-content" class="comment-input" placeholder="의견을 남겨주세요..." rows="3"></textarea>
       <input type="hidden" id="comment-parent-id" value="">
       <div class="comment-form-actions">
         <span id="reply-indicator" style="display:none;">
           <span id="reply-to-text"></span>
           <button type="button" id="cancel-reply-btn" class="btn-text-link">취소</button>
         </span>
-        <button type="submit" class="btn btn-primary" id="comment-submit-btn">등록</button>
+        <button type="submit" class="btn btn-primary" id="comment-submit-btn">의견 남기기</button>
       </div>
     </form>
     <p id="comment-login-prompt" class="auth-prompt" style="display:none;">

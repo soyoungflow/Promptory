@@ -137,6 +137,32 @@ curl -s http://<EC2_IP>/ai/health
 
 ---
 
+## 9. CD 배포 실패 — `no space left on device`
+
+**증상:** GitHub Actions CD 단계 `[5/7] Rebuild`에서 Docker build 중 exit 1.
+
+```
+failed to extract layer ... no space left on device
+```
+
+**원인:** EC2 기본 EBS(8GB)에 HF(torch) 이미지·빌드 캐시·이전 레이어 누적.
+
+**즉시 조치 (EC2 SSH):**
+```bash
+cd /path/to/Promptory
+docker compose down
+docker builder prune -af
+docker system prune -af
+df -h /
+docker compose up -d --build
+```
+
+**여전히 부족하면:** EBS 볼륨 **20GB+** 로 확장 (AWS 콘솔 → Volume → Modify → grow partition).
+
+**예방:** CD 워크플로가 배포 전 `docker builder prune` / `docker system prune` 을 실행함 (`.github/workflows/cd.yml`).
+
+---
+
 ## 빠른 복구 체크리스트
 
 ```bash

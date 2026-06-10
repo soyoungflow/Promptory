@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     area.innerHTML = `
       <a href="/accounts/login/" class="btn btn-sm btn-secondary">로그인</a>
-      <a href="/accounts/register/" class="btn btn-sm btn-primary">회원가입</a>
+      <a href="/accounts/register/" class="btn btn-sm btn-primary">무료로 시작하기</a>
     `;
   }
 });

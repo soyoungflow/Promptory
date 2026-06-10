@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return `
       ${krefs.length ? `
       <details class="step-policy" open>
-        <summary>참고 자료 (${krefs.length}개)</summary>
+        <summary>📚 참고 자료 (${krefs.length}개)</summary>
         <div class="policy-block">
           ${krefs.map(k => `
             <div class="knowledge-item">
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </details>` : ''}
       <details class="step-policy">
-        <summary>연결 방식 (이전 단계 → 이 단계)</summary>
+        <summary>🎯 이전 단계와 어떻게 연결되나요?</summary>
         <div class="policy-block">
           <div><span class="policy-key">전달 방식:</span> ${Api.escapeHtml(t('previous_output', cp.previous_output_strategy || 'full'))}</div>
           <div><span class="policy-key">참고 범위:</span> ${Api.escapeHtml(t('memory_scope', cp.memory_scope || 'all_previous'))}</div>
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </details>
       <details class="step-policy">
-        <summary>운영 가이드</summary>
+        <summary>🔧 안전하게 실행하기</summary>
         <div class="policy-block">
           <div><span class="policy-key">제한 시간:</span> ${hp.timeout_seconds || 30}초</div>
           <div><span class="policy-key">재시도:</span> 최대 ${hp.max_retries ?? 2}번</div>
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </details>
       <details class="step-policy">
-        <summary>완료 판단 기준</summary>
+        <summary>✅ 잘 됐는지 어떻게 알 수 있나요?</summary>
         <div class="policy-block">
           ${(vc.success_signals || []).length ? `
             <div><span class="policy-key">성공 신호:</span></div>
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { data } = await Api.get(`/prompts/${promptId}/comments/`);
       if (!data.length) {
-        commentList.innerHTML = '<p class="empty-state">첫 댓글을 작성해보세요.</p>';
+        commentList.innerHTML = '<p class="empty-state">첫 댓글을 남겨주세요.</p>';
         return;
       }
       commentList.innerHTML = data.map(renderComment).join('');

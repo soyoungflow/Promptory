@@ -46,13 +46,19 @@ document.addEventListener('DOMContentLoaded', () => {
       </a>`;
   }
 
-  function renderGrid(grid, items, errorMsg) {
+  const EMPTY_GRID_MESSAGES = {
+    bookmarks: '관심 있는 프롬프트를 저장해보세요. 나중에 한곳에서 다시 찾을 수 있어요.',
+    likes: '도움이 된 프롬프트에 「도움됐어요」를 눌러보세요.',
+    mine: '아직 등록한 프롬프트가 없어요. + 프롬프트 등록으로 첫 콘텐츠를 올려보세요.',
+  };
+
+  function renderGrid(grid, items, errorMsg, emptyMsg) {
     if (errorMsg) {
       grid.innerHTML = `<div class="error-state">${Api.escapeHtml(errorMsg)}</div>`;
       return;
     }
     if (!items?.length) {
-      grid.innerHTML = '<div class="empty-state">항목이 없습니다.</div>';
+      grid.innerHTML = `<div class="empty-state">${Api.escapeHtml(emptyMsg || '항목이 없습니다.')}</div>`;
       return;
     }
     grid.innerHTML = items.map(renderCard).join('');
@@ -157,7 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (!items?.length) {
-      transformsList.innerHTML = '<div class="empty-state">생성된 설계서가 없습니다.</div>';
+      transformsList.innerHTML = `
+        <div class="empty-state">
+          <p>아직 만든 설계서가 없어요.</p>
+          <p>프롬프트 하나를 골라 <strong>에이전트 설계서로 변환</strong>해보세요.</p>
+          <p style="margin-top:12px;">
+            <a href="/blueprints/new/" class="btn btn-primary">설계서 만들기</a>
+            <a href="/prompts/" class="btn btn-secondary">설계서 둘러보기</a>
+          </p>
+        </div>`;
       return;
     }
     transformsList.innerHTML = items.map(row => {
@@ -193,24 +207,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const comments = cm.res.ok && Array.isArray(cm.data) ? cm.data : null;
 
     if (bookmarks) {
-      bookmarkCount.textContent = `북마크 ${bookmarks.length}개`;
-      renderGrid(bookmarkGrid, bookmarks);
+      bookmarkCount.textContent = `저장 ${bookmarks.length}개`;
+      renderGrid(bookmarkGrid, bookmarks, null, EMPTY_GRID_MESSAGES.bookmarks);
     } else {
       bookmarkCount.textContent = '';
-      renderGrid(bookmarkGrid, [], '북마크를 불러오지 못했습니다.');
+      renderGrid(bookmarkGrid, [], '저장 목록을 불러오지 못했습니다.');
     }
 
     if (likes) {
-      likeCount.textContent = `좋아요 ${likes.length}개`;
-      renderGrid(likeGrid, likes);
+      likeCount.textContent = `도움됐어요 ${likes.length}개`;
+      renderGrid(likeGrid, likes, null, EMPTY_GRID_MESSAGES.likes);
     } else {
       likeCount.textContent = '';
-      renderGrid(likeGrid, [], '좋아요 목록을 불러오지 못했습니다.');
+      renderGrid(likeGrid, [], '목록을 불러오지 못했습니다.');
     }
 
     if (mineList) {
       mineCount.textContent = `내 프롬프트 ${mineList.length}개`;
-      renderGrid(mineGrid, mineList);
+      renderGrid(mineGrid, mineList, null, EMPTY_GRID_MESSAGES.mine);
     } else {
       mineCount.textContent = '';
       renderGrid(mineGrid, [], '내 프롬프트를 불러오지 못했습니다.');
