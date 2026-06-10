@@ -254,7 +254,7 @@
           "refId": "A"
         }
       ],
-      "title": "Prometheus scrape UP (django / fastapi)",
+      "title": "Prometheus scrape UP (django / fastapi / celery)",
       "type": "timeseries"
     }
   ],

@@ -6,12 +6,18 @@ from django.utils import timezone
 
 from ai_gateway.models import AgentTransformation, BlueprintDesign, PromptEmbedding
 from ai_gateway.services.llm_client import LLMClient
-from monitoring.metrics import agent_transformation_total, model_inference_duration_seconds
 from prompts.models import Prompt
 from tasks.models import Task
 from tasks.task_notify import notify_task_status
 
 logger = structlog.get_logger()
+
+
+def _custom_metrics():
+    """Celery 자식 프로세스에서 multiprocess 모드 설정 후 메트릭을 등록한다."""
+    from monitoring.metrics import agent_transformation_total, model_inference_duration_seconds
+
+    return agent_transformation_total, model_inference_duration_seconds
 
 
 def _set_status(task: Task, status: str, **extra) -> None:
@@ -29,6 +35,8 @@ def transform_prompt(self, task_id: str, prompt_id: int):
     task = Task.objects.get(task_id=task_id)
     _set_status(task, 'PROCESSING', started_at=timezone.now())
     logger.info('transform_started', task_id=str(task_id), prompt_id=prompt_id)
+
+    agent_transformation_total, model_inference_duration_seconds = _custom_metrics()
 
     try:
         prompt = Prompt.objects.get(pk=prompt_id, is_deleted=False)
@@ -98,6 +106,8 @@ def transform_prompt(self, task_id: str, prompt_id: int):
 def embed_prompt(self, task_id: str, prompt_id: int):
     task = Task.objects.get(task_id=task_id)
     _set_status(task, 'PROCESSING', started_at=timezone.now())
+
+    _, model_inference_duration_seconds = _custom_metrics()
 
     try:
         prompt = Prompt.objects.get(pk=prompt_id, is_deleted=False)

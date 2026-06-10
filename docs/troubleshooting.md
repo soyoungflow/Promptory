@@ -112,12 +112,15 @@ curl -s http://localhost/   # nginx 경유
 
 ## 7. Grafana / Prometheus 빈 화면
 
-**증상:** `/grafana/` 접속은 되나 패널 No data.
+**증상:** `/grafana/` 접속은 되나 AI 패널(`agent_transformation_total` 등) No data.
 
 **확인:**
 ```bash
-curl -s http://localhost/prometheus/api/v1/targets | head -c 500
+curl -fsS http://127.0.0.1/prometheus/prometheus/api/v1/targets | grep -E 'celery|django|fastapi'
+docker compose exec celery_worker python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:9100/metrics').read()[:400])"
+curl -fsS 'http://127.0.0.1/prometheus/prometheus/api/v1/query?query=sum(agent_transformation_total)'
 ```
+커스텀 AI 메트릭은 **Celery worker `:9100/metrics`** 에서 수집됩니다. transform 1회 실행 후 Grafana를 새로고침하세요.
 
 **조치:**
 - `PUBLIC_BASE_URL`이 실제 접속 URL과 일치하는지 확인
@@ -163,22 +166,43 @@ docker compose up -d --build
 
 ---
 
-## 9. CD smoke check `502 Gateway Time-out`
+## 9. CD smoke check `502` (Grafana DNS 실패)
 
-**증상:** GitHub Actions CD의 `[9/9] Post-deploy smoke check` 단계에서 `curl: (22) The requested URL returned error: 502`. `docker compose ps` 에서 `nginx` 가 `(health: starting)` 인 경우가 많음.
+**증상:** `/`, `/ai/health` 는 200인데 `/grafana/api/health` 만 502. nginx 로그에 `grafana could not be resolved (2: Server failure)`.
 
-**원인:** `docker compose up -d --build` 직후 nginx·web 이 아직 기동 중인데 smoke `curl` 이 먼저 실행됨.
+**원인:** **Grafana 컨테이너가 떠 있지 않음** — `docker compose ps` 에 `promptory-grafana-1` 이 없으면 nginx 가 upstream 호스트 `grafana` 를 DNS 로 찾지 못함.
 
-**조치:**
-- CD 워크플로는 `compose up` 후 **최대 3분** 동안 db/redis/ai_server/web/nginx 가 모두 `healthy` 가 될 때까지 대기함 (`.github/workflows/cd.yml` `[7/9]`).
-- 수동 배포 시에도 동일하게 대기 후 확인:
+**즉시 조치 (EC2 SSH):**
 ```bash
-docker compose ps
-# nginx, web 모두 (healthy) 확인 후
-curl -fsS http://127.0.0.1/
+cd ~/Promptory
+docker compose ps -a
+docker compose up -d grafana prometheus
+docker compose logs grafana --tail 80
+curl -fsS http://127.0.0.1/grafana/api/health
 ```
 
-**여전히 502이면:** `docker compose logs web --tail 80`, `docker compose logs nginx --tail 80` 로 upstream 오류 확인.
+**종료(exited)·CrashLoop 상태면:** `docker compose logs grafana` 확인.
+
+- **Grafana 13 + provisioning uid 불일치** (로그: `Datasource provisioning error: data source not found`): 기존 `grafana_data` 볼륨의 datasource UID 와 `grafana/provisioning/datasources/prometheus.yml` 의 `uid: Prometheus` 가 맞지 않으면 Grafana 13 이 기동 실패함.
+```bash
+docker compose stop grafana
+docker volume rm promptory_grafana_data
+docker compose up -d grafana prometheus
+curl -fsS http://127.0.0.1/grafana/api/health
+```
+- 프로젝트는 `grafana/grafana:11.4.0` 으로 고정해 이 회귀를 피함.
+
+**예방:** `docker-compose.yml` — grafana `11.4.0` 고정, `restart: unless-stopped`, healthcheck. CD는 grafana/prometheus 기동·healthy 대기 후 smoke check 실행.
+
+---
+
+## 10. CD smoke check `502 Gateway Time-out` (nginx/web 미준비)
+
+**증상:** smoke check 초반 `curl http://127.0.0.1/` 자체가 502. `nginx` 가 `(health: starting)`.
+
+**원인:** `compose up` 직후 nginx·web 이 아직 기동 중.
+
+**조치:** CD `[7/9]` 에서 db/redis/ai_server/web/nginx/grafana 가 `healthy` 될 때까지 대기 후 smoke 실행.
 
 ---
 

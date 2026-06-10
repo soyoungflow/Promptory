@@ -95,6 +95,8 @@ services:
   celery_worker:
     build: .
     command: celery -A config worker -l info --concurrency=2
+    expose:
+      - "9100"
     volumes:
       - .:/app
       - media_data:/app/media
@@ -114,6 +116,8 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
       HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
+      PROMETHEUS_MULTIPROC_DIR: /tmp/prometheus_multiproc
+      CELERY_METRICS_PORT: "9100"
     depends_on:
       db:
         condition: service_healthy
@@ -124,6 +128,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    restart: unless-stopped
     expose:
       - "9090"
     command:
@@ -136,7 +141,9 @@ services:
       - prometheus_data:/prometheus
 
   grafana:
-    image: grafana/grafana:latest
+    # Grafana 13+ 는 기존 grafana_data UID 와 provisioning uid 불일치 시 기동 실패(CrashLoop)
+    image: grafana/grafana:11.4.0
+    restart: unless-stopped
     expose:
       - "3000"
     environment:
@@ -146,6 +153,16 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3000/api/health | grep -qE '\"database\"[[:space:]]*:[[:space:]]*\"ok\"' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   nginx:
     image: nginx:1.27-alpine

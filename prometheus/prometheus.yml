@@ -12,3 +12,8 @@ scrape_configs:
     static_configs:
       - targets: ['ai_server:8000']
     metrics_path: /metrics
+
+  - job_name: celery
+    static_configs:
+      - targets: ['celery_worker:9100']
+    metrics_path: /metrics
