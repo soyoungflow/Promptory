@@ -163,6 +163,25 @@ docker compose up -d --build
 
 ---
 
+## 9. CD smoke check `502 Gateway Time-out`
+
+**증상:** GitHub Actions CD의 `[9/9] Post-deploy smoke check` 단계에서 `curl: (22) The requested URL returned error: 502`. `docker compose ps` 에서 `nginx` 가 `(health: starting)` 인 경우가 많음.
+
+**원인:** `docker compose up -d --build` 직후 nginx·web 이 아직 기동 중인데 smoke `curl` 이 먼저 실행됨.
+
+**조치:**
+- CD 워크플로는 `compose up` 후 **최대 3분** 동안 db/redis/ai_server/web/nginx 가 모두 `healthy` 가 될 때까지 대기함 (`.github/workflows/cd.yml` `[7/9]`).
+- 수동 배포 시에도 동일하게 대기 후 확인:
+```bash
+docker compose ps
+# nginx, web 모두 (healthy) 확인 후
+curl -fsS http://127.0.0.1/
+```
+
+**여전히 502이면:** `docker compose logs web --tail 80`, `docker compose logs nginx --tail 80` 로 upstream 오류 확인.
+
+---
+
 ## 빠른 복구 체크리스트
 
 ```bash
