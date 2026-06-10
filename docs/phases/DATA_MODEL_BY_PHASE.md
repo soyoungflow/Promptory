@@ -18,6 +18,7 @@ Mermaid 블록은 GitHub, VS Code (Mermaid 확장), [mermaid.live](https://merma
 | AnalysisResult | ❌ | MVP 제외 (Q4) |
 | PromptEmbedding | ❌ | ✅ `ai_gateway` |
 | Task | ❌ | ✅ `tasks` |
+| BlueprintDesign | ❌ | ✅ `ai_gateway` (설계서 만들기) |
 
 ---
 
@@ -113,8 +114,11 @@ erDiagram
   CustomUser ||--o{ Like : gives
   CustomUser ||--o{ Bookmark : saves
   CustomUser ||--o{ Task : requests
+  CustomUser ||--o{ BlueprintDesign : designs
 
   Prompt }o--|| Category : belongs_to
+  BlueprintDesign ||--o| AgentTransformation : produces
+  BlueprintDesign }o--|| Prompt : source_draft
   Prompt }o--o{ Tag : tagged_with
   Prompt ||--o{ PromptFile : has
   Prompt ||--o{ Comment : receives

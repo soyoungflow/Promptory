@@ -19,7 +19,8 @@ from schemas import (
     VerificationCriteria,
 )
 
-app = FastAPI(title='Promptory AI Server')
+# nginx가 /ai/* → ai_server:8000/* 로 프록시할 때 Swagger가 /ai/openapi.json 을 보도록 함
+app = FastAPI(title='Promptory AI Server', root_path=os.getenv('ROOT_PATH', ''))
 Instrumentator().instrument(app).expose(app)
 
 PROVIDER = os.getenv('LLM_PROVIDER', 'mock')

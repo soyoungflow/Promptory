@@ -205,6 +205,15 @@ Dockerfile, docker-compose.yml, config/settings/docker.py  # Compose(웹+Postgre
 | POST | /api/prompts/{id}/bookmark/ | 북마크 토글 |
 | GET/POST | /api/prompts/{id}/comments/ | 댓글 목록/작성 |
 
+Phase 4 (AI · 비동기 · 설계서): [docs/API_PHASE4.md](docs/API_PHASE4.md)
+
+| 메서드 | 엔드포인트 | 설명 |
+|---|---|---|
+| POST | /api/blueprints/design/ | 설계서 만들기 + Celery 변환 |
+| GET | /api/tasks/{task_id}/status/ | Task 상태 조회 |
+| POST | /api/prompts/{id}/transform/ | (API) 프롬프트 변환 |
+| GET | /api/prompts/{id}/similar/ | 유사 레시피 |
+
 ---
 
 ## API 응답 계약

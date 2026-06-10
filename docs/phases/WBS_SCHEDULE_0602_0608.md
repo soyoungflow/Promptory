@@ -23,7 +23,9 @@
 | **GitHub CD** | ✅ SSH 연결 + 자동 배포 | `main` push 시 EC2 `git sync` → `compose up` → healthy 대기 → smoke |
 | **EC2 Compose 7서비스** | 🟡 부분 검증 | CD 로그: migrate OK, `ai_server` health OK, `web`은 기동 후 daphne 200 |
 | **EC2 외부 시연 URL** | 🟡 부분 | Docker nginx `:80` — `http://<EC2>/`, `/ai/docs` 등 ([프록시 문서](../NGINX_REVERSE_PROXY.md)) |
-| **증빙·리허설** | 🔴 미완 | 스크린샷, ERD PNG, 발표 리허설, `troubleshooting.md` |
+| **증빙·리허설** | 🔴 미완 | 스크린샷, ERD PNG, 발표 리허설, k6 결과 캡처 |
+| **자동 테스트** | ✅ | 39 tests (accounts, prompts, interaction, ai_gateway, tasks) |
+| **문서** | ✅ | `troubleshooting.md`, `API_PHASE4.md`, `BONUS_POINTS_PLAN.md` |
 
 **핵심 메시지:** 남은 일은 **새 기능 코딩**보다 **EC2에서 E2E 검증 + 보안 그룹 + 증빙 캡처 + 발표 리허설**이다.
 
@@ -54,24 +56,23 @@
 - FastAPI `ai_server/` — mock + 선택 HF 로더 (`/health`, `/transform`, `/embed`)
 - Celery: `tasks/celery_tasks.py` — `transform_prompt`, `embed_prompt`
 - APIs: transform, task status, agent JSON, similar, `me/transformations/`
-- UI: 상세 인라인 변환 (`prompt-detail.js`), 보관함 「내 변환」 (`library.js`), 폼 `prompt_type`
+- UI: **설계서 만들기** (`/blueprints/new/`, `blueprint-design.js`), 보관함 「내 변환」 (`library.js`), 폼 `prompt_type`
 - WebSocket: `ws/tasks/?token=` + 폴링 fallback
 - 모니터링: `prometheus/prometheus.yml`, `grafana/provisioning/`, `monitoring/metrics.py`
 - CD: `.github/workflows/cd.yml` — SSH 배포 + healthy 대기 + smoke check
 
 ### 아직 저장소/EC2에 없는 것 (남은 작업 🔴)
 
-- `docs/troubleshooting.md` (Day 7 문서)
-- Phase 4 전용 자동 테스트 (`ai_gateway`, `tasks` tests 없음)
-- ERD PNG export (mermaid → 이미지)
-- EC2 보안 그룹: **80** 개방 (프록시 — [NGINX_REVERSE_PROXY.md](../NGINX_REVERSE_PROXY.md))
+- ERD PNG export (mermaid → 이미지) — [DATA_MODEL_BY_PHASE.md](./DATA_MODEL_BY_PHASE.md)
+- EC2 브라우저 E2E (설계서 만들기 경로)
+- k6 실행 결과 캡처 (`scripts/k6/smoke.js`)
 - 발표 증빙 패키지 (스크린샷·리허설 영상 등)
 
 ### 이번 주에 증명해야 할 것
 
 자가정검 체크리스트 E2E 흐름:
 
-> 사용자 입력 → Django → DB → AI 요청 → **비동기 (Celery)** → 결과 DB 저장 → **인라인 UI** → **모니터링**
+> 사용자 입력 → Django → DB → AI 요청 → **비동기 (Celery)** → 결과 DB 저장 → **설계서 UI** (`/blueprints/new/`) → **모니터링**
 
 ---
 
@@ -83,7 +84,7 @@
 | **06-02** | Day 2 | migrate 적용; Admin 4차 모델; Phase 3 정상 | 🟡 |
 | **06-03** | Day 3 | `/ai/health` OK; `/ai/docs` transform (mock) OK | 🟡 |
 | **06-04** | Day 4 | `celery_worker` ready; Task PENDING → SUCCESS | 🔴 |
-| **06-05** | Day 5 | 작성자 변환 → 인라인 4단계 + 보관함 「내 변환」 | 🔴 |
+| **06-05** | Day 5 | 설계서 만들기 → 4단계 결과 + 보관함 「내 변환」 | 🔴 |
 | **06-06** | Day 6 | Prometheus targets UP; Grafana 스크린샷 | 🔴 |
 | **06-07** | Day 7 | WebSocket + 폴링 fallback; 콜드 스타트 리허설 | 🔴 |
 | **06-08** | Day 8 | 라이브 발표 + 증빙 패키지 제출 | 🔴 |
@@ -355,7 +356,7 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 - [x] WebSocket 코드: `config/asgi.py`, `tasks/consumers.py`, `prompt-detail.js`
 - [ ] EC2에서 WS 연결 DevTools 캡처
 - [ ] 폴링 fallback 1회 확인
-- [ ] `docs/troubleshooting.md` 작성
+- [x] `docs/troubleshooting.md` 작성
 - [ ] 콜드 스타트 리허설 1회
 
 ### 종료 기준
@@ -381,7 +382,7 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 | 1 | 문제, 사용자, 3차→4차 진화 | 1.5 |
 | 2 | 아키텍처 (7 컨테이너) | 1.5 |
 | 3 | Phase 3: 탐색, 로그인 | 1 |
-| 4 | **변환 버튼** → Task → 인라인 4단계 | 3 |
+| 4 | **설계서 만들기** → Task → 4단계 결과 | 3 |
 | 5 | 보관함 「내 변환」 | 1 |
 | 6 | FastAPI `/docs` + `/transform` 1회 | 1 |
 | 7 | Prometheus + Grafana | 2 |
@@ -427,7 +428,7 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 |------|------|
 | `AnalysisResult` / analyze task | Q4 — MVP 제외 |
 | 유료 프롬프트 결제 | 비즈니스 phase 3 |
-| 전용 `/prompts/{id}/agent/` 페이지 | Q2 — 인라인만 |
+| 레시피 상세 인라인 변환 | Q15 — 설계서 만들기로 대체 |
 | Vercel을 4차 주 호스트 | Q1 — EC2 Compose |
 | `mcp_package` UI | Q8 — DB choice만, UI 비활성 |
 
@@ -435,7 +436,7 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 
 ## 시간이 부족할 때 우선순위 (갱신)
 
-1. **지금 즉시:** EC2 SG **8000·8001·9090·3000** 개방 + `seed_mockup` + 브라우저 E2E (Day 5 경로)
+1. **지금 즉시:** EC2 SG **80** 개방 + `seed_mockup` + 브라우저 E2E (`/blueprints/new/` 경로)
 2. **06-04:** Celery Task PENDING → SUCCESS Admin 증빙
 3. **06-06:** Prometheus + Grafana 스크린샷
 4. **06-07:** 콜드 스타트 리허설 1회
@@ -452,3 +453,4 @@ CELERY_RESULT_BACKEND=redis://redis:6379/1
 | 2026-05-27 | WBS v2 + DECISIONS Q1~Q12 + 저장소 구현 상태로 초안 작성 |
 | 2026-06-04 | 영어 문서 한글 번역 |
 | 2026-06-05 | 코드·CD·EC2 점검 반영: Day 1 완료, Day 2~3 부분, Day 4~8 EC2 검증·증빙 미완 명시; CD `wait_for_healthy` 메모 추가 |
+| 2026-06-08 | 설계서 만들기 시연 경로 반영, 39 tests·API_PHASE4·k6·자가정검 갱신 |

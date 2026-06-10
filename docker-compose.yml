@@ -32,6 +32,7 @@ services:
       HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
       HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
       HF_TORCH_DTYPE: ${HF_TORCH_DTYPE:-float16}
+      ROOT_PATH: /ai
     volumes:
       - hf_cache:/root/.cache/huggingface
     healthcheck:

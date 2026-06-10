@@ -9,6 +9,7 @@
 | 경로 | 용도 |
 |------|------|
 | `http://<EC2_HOST>/` | Django 메인 UI |
+| `http://<EC2_HOST>/blueprints/new/` | **설계서 만들기** (4차 핵심 시연) |
 | `http://<EC2_HOST>/ai/docs` | FastAPI Swagger |
 | `http://<EC2_HOST>/ai/health` | AI 서버 헬스 |
 | `http://<EC2_HOST>/grafana/` | Grafana (admin / admin) |
@@ -24,6 +25,7 @@ git pull origin main
 cp .env.example .env   # 최초 1회 — SECRET_KEY, ALLOWED_HOSTS, PUBLIC_BASE_URL 설정
 docker compose up -d --build
 docker compose exec web python manage.py migrate --noinput
+docker compose exec web python manage.py collectstatic --noinput
 ```
 
 **EC2 `.env` 예시:**
@@ -51,16 +53,20 @@ docker compose build ai_server && docker compose up -d ai_server celery_worker
 
 ## 21단계 시연 스크립트 (요약)
 
-1. 홈 → 프롬프트 탐색 (3차 유지)
+1. 홈 → 프롬프트·레시피 탐색 (3차 유지)
 2. 작성자 계정으로 로그인
-3. 본인 프롬프트 상세 → **에이전트로 변환하기**
-4. PENDING → SUCCESS 표시 (폴링 또는 WebSocket)
-5. 인라인 4단계 에이전트 결과 + confidence
-6. 보관함 → **내 변환** 탭 (프롬프트당 최신 1건)
-7. DevTools: `GET /api/tasks/{id}/status/`
-8. `http://<EC2_HOST>/ai/docs` → `/transform` mock 호출
-9. `http://<EC2_HOST>/prometheus/` targets UP, Grafana 대시보드
-10. Admin → Task / AgentTransformation 행 확인
+3. 상단 **설계서 만들기** (`/blueprints/new/`) — 자동화 요청·추가 맥락 입력
+4. **변환 시작** → task_id 반환
+5. PENDING → PROCESSING → SUCCESS (폴링 또는 WebSocket)
+6. 4단계 에이전트 설계 결과 + confidence
+7. (선택) **레시피로 등록** — 마켓 초안 공개
+8. 보관함 → **내 변환** 탭
+9. DevTools: `GET /api/tasks/{id}/status/`
+10. `http://<EC2_HOST>/ai/docs` → `/transform` mock 호출
+11. `http://<EC2_HOST>/prometheus/` targets UP, Grafana 대시보드
+12. Admin → Task / AgentTransformation / BlueprintDesign 행 확인
+
+> **참고:** 레시피 상세 페이지의 인라인 「에이전트로 변환하기」는 제거됨 (DECISIONS Q15). 시연은 **설계서 만들기** 경로를 사용하세요.
 
 ## 디스크 (CD 실패 시)
 
@@ -84,3 +90,11 @@ SSH(22)는 배포·관리용으로 별도 유지.
 ## EC2 기존 gunicorn + 호스트 nginx
 
 80번 충돌 시 → [NGINX_REVERSE_PROXY.md §5](./NGINX_REVERSE_PROXY.md#5-배포-절차) 참고.
+
+## 부하 테스트 (가산점)
+
+```bash
+k6 run -e BASE_URL=http://13.211.8.186 scripts/k6/smoke.js
+```
+
+→ [BONUS_POINTS_PLAN.md](./BONUS_POINTS_PLAN.md)

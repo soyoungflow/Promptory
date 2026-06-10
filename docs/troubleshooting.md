@@ -53,9 +53,12 @@ curl -fsS http://127.0.0.1/ >/dev/null && echo OK
 
 ---
 
-## 2. 변환 버튼 클릭 후 무한 대기 / 504
+## 2. 설계서 변환 후 무한 대기 / 504
 
-**증상:** 「에이전트로 변환하기」 후 스피너만 돌거나 nginx `504 Gateway Time-out`.
+**증상:** **설계서 만들기** (`/blueprints/new/`)에서 「변환 시작」 후 스피너만 돌거나 nginx `504 Gateway Time-out`.  
+(레거시 API `POST /api/prompts/{id}/transform/` 호출 시에도 동일 증상.)
+
+> 시연 경로: 상세 페이지 인라인 「에이전트로 변환하기」는 제거됨 (DECISIONS Q15). 문제 재현은 `/blueprints/new/` 기준.
 
 **확인:**
 ```bash
