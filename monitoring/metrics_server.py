@@ -5,13 +5,19 @@ from threading import Thread
 
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest, multiprocess
 
+from monitoring.multiproc import CELERY_MULTIPROC_DIR
+
 METRICS_PORT = int(os.environ.get('CELERY_METRICS_PORT', '9100'))
-MULTIPROC_DIR = os.environ.get('PROMETHEUS_MULTIPROC_DIR', '/tmp/prometheus_multiproc')
+
+
+def _multiproc_dir() -> str:
+    return CELERY_MULTIPROC_DIR
 
 
 def _clean_multiproc_dir() -> None:
-    os.makedirs(MULTIPROC_DIR, exist_ok=True)
-    for path in glob.glob(os.path.join(MULTIPROC_DIR, '*')):
+    directory = _multiproc_dir()
+    os.makedirs(directory, exist_ok=True)
+    for path in glob.glob(os.path.join(directory, '*')):
         if os.path.isfile(path):
             os.remove(path)
 
@@ -36,6 +42,8 @@ class _MetricsHandler(BaseHTTPRequestHandler):
 
 
 def start_celery_metrics_server() -> None:
+    os.environ['PROMETHEUS_MULTIPROC_DIR'] = CELERY_MULTIPROC_DIR
+    os.makedirs(CELERY_MULTIPROC_DIR, exist_ok=True)
     _clean_multiproc_dir()
     httpd = HTTPServer(('0.0.0.0', METRICS_PORT), _MetricsHandler)
     thread = Thread(target=httpd.serve_forever, daemon=True, name='celery-metrics')

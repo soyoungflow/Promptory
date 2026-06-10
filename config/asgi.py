@@ -1,5 +1,8 @@
 import os
 
+# daphne 전용 — Celery multiproc env가 있으면 django-prometheus 기동 실패
+os.environ.pop('PROMETHEUS_MULTIPROC_DIR', None)
+
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 

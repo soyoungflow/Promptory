@@ -6,6 +6,15 @@ Docker Compose 로컬 실행용.
 
     DJANGO_SETTINGS_MODULE=config.settings.docker
 """
+import os
+import sys
+
+# Celery multiproc env는 web/daphne·migrate에서 django-prometheus와 충돌한다.
+# django_prometheus AppConfig.ready() 보다 먼저 제거해야 한다.
+_argv = ' '.join(sys.argv)
+if not ('celery' in _argv and 'worker' in _argv):
+    os.environ.pop('PROMETHEUS_MULTIPROC_DIR', None)
+
 from decouple import config
 
 from ._hosts import build_allowed_hosts

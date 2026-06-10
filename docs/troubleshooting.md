@@ -16,6 +16,7 @@ docker compose logs nginx --tail 30
 
 **흔한 원인:**
 - DB 마이그레이션 실패 → `web` entrypoint에서 `migrate` 오류
+- **`PROMETHEUS_MULTIPROC_DIR`가 web에 전달됨** → `FileNotFoundError: .../prometheus_multiproc/counter_*.db` (아래 §1-1)
 - `ALLOWED_HOSTS`에 EC2 IP·`web` 미포함 → Django 400
 - 호스트 80 포트 점유 (호스트 nginx 등)
 
@@ -25,6 +26,29 @@ docker compose run --rm web python manage.py migrate
 # ALLOWED_HOSTS=localhost,127.0.0.1,web,<EC2_IP> (.env)
 sudo systemctl stop nginx   # EC2 호스트 nginx 충돌 시
 docker compose up -d --force-recreate web nginx
+```
+
+### 1-1. web `Exited (1)` — `prometheus_multiproc/counter_*.db` 없음
+
+**증상:** migrate는 성공하는데 daphne 기동 직후 종료. 로그 예:
+
+```text
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/prometheus_multiproc/counter_9.db'
+```
+
+**원인 (프로젝트 설계):** `e45b51a`에서 Celery 메트릭용 `PROMETHEUS_MULTIPROC_DIR`를 `docker-compose.yml` **컨테이너 env**로 노출했다. 이 변수는 `prometheus_client` 전역 설정이라 web(daphne)이 같은 Django 이미지를 쓰면 `django-prometheus` middleware가 multiprocess 모드로 기동을 시도하고, 디렉터리가 없으면 위 오류로 `Exited (1)` 한다. `.env`에 없어도 compose env·호스트 export 등으로 web에 유입될 수 있다.
+
+**근본 수정 (저장소):**
+- compose에서 `PROMETHEUS_MULTIPROC_DIR` 제거 → Celery worker 프로세스 안에서만 설정
+- `config/settings/docker.py`·`config/asgi.py`에서 web/migrate 경로는 해당 env 제거 (`django_prometheus` ready 이전)
+
+**즉시 조치 (EC2):**
+```bash
+cd ~/Promptory
+git pull origin main
+docker compose up -d --build --force-recreate web celery_worker nginx
+docker compose logs web --tail 30
+curl -fsS http://127.0.0.1/ >/dev/null && echo OK
 ```
 
 ---

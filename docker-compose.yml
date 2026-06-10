@@ -50,7 +50,8 @@ services:
   web:
     build: .
     command: >
-      sh -c "python manage.py migrate --noinput &&
+      sh -c "unset PROMETHEUS_MULTIPROC_DIR &&
+             python manage.py migrate --noinput &&
              daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     expose:
       - "8000"
@@ -94,7 +95,9 @@ services:
 
   celery_worker:
     build: .
-    command: celery -A config worker -l info --concurrency=2
+    command: >
+      sh -c "mkdir -p /tmp/prometheus_multiproc &&
+             exec celery -A config worker -l info --concurrency=2"
     expose:
       - "9100"
     volumes:
@@ -116,7 +119,6 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
       HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
-      PROMETHEUS_MULTIPROC_DIR: /tmp/prometheus_multiproc
       CELERY_METRICS_PORT: "9100"
     depends_on:
       db:
