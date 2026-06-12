@@ -5,8 +5,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from ai_gateway.models import AgentTransformation
+from ai_gateway.models import AgentTransformation, BlueprintDesign
 from ai_gateway.serializers import MyTransformationSerializer
+from ai_gateway.services.blueprint import sync_design_from_task
 from prompts.models import Prompt
 from prompts.serializers import PromptListSerializer
 from tasks.models import Task
@@ -24,7 +25,6 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            # 가입 즉시 JWT 발급
             refresh = RefreshToken.for_user(user)
             return Response({
                 'user': RegisterSerializer(user).data,
@@ -42,7 +42,7 @@ class LogoutView(APIView):
         try:
             refresh_token = request.data['refresh']
             token = RefreshToken(refresh_token)
-            token.blacklist()  # simplejwt 블랙리스트
+            token.blacklist()
             return Response({'detail': '로그아웃 되었습니다.'}, status=status.HTTP_200_OK)
         except Exception:
             return Response({'detail': '유효하지 않은 토큰입니다.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -64,15 +64,64 @@ class MyPromptListView(APIView):
 
 
 class MyTransformationListView(APIView):
-    """GET /api/accounts/me/transformations/ — owned prompts, latest transform each."""
+    """GET /api/accounts/me/transformations/ — 설계서 만들기(BlueprintDesign) 목록."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        prompts = Prompt.objects.filter(
-            user=request.user, is_deleted=False, is_blueprint_draft=False,
-        ).order_by('-created_at')
+        designs = (
+            BlueprintDesign.objects.filter(user=request.user)
+            .select_related('transformation', 'recipe', 'source_prompt')
+            .order_by('-created_at')
+        )
         rows = []
-        for prompt in prompts:
+        seen_design_ids = set()
+
+        for design in designs:
+            design = sync_design_from_task(design)
+            seen_design_ids.add(design.id)
+
+            if design.status != 'success' or not design.transformation_id:
+                continue
+
+            transformation = design.transformation
+            latest_task = Task.objects.filter(
+                prompt_id=design.source_prompt_id,
+                task_type='blueprint_design',
+                status='SUCCESS',
+                result_id=transformation.id,
+            ).order_by('-finished_at').first()
+
+            display_title = design.title or (design.brief or '')[:80]
+            if design.recipe_id and design.recipe:
+                display_title = design.recipe.title
+
+            rows.append({
+                'design_id': design.id,
+                'recipe_id': design.recipe_id,
+                'design_status': design.status,
+                'prompt_id': design.recipe_id or design.source_prompt_id,
+                'prompt_title': display_title,
+                'transformation_id': transformation.id,
+                'decomposed_steps': transformation.decomposed_steps,
+                'suggested_tools': transformation.suggested_tools,
+                'confidence_score': transformation.confidence_score,
+                'model_used': transformation.model_used,
+                'overall_pattern': transformation.overall_pattern,
+                'context_strategy_summary': transformation.context_strategy_summary,
+                'harness_strategy_summary': transformation.harness_strategy_summary,
+                'quality_strategy_summary': transformation.quality_strategy_summary,
+                'created_at': transformation.created_at,
+                'task_id': latest_task.task_id if latest_task else None,
+            })
+
+        # 레거시: 상세 페이지 transform (task_type=transform) 이력
+        legacy_prompts = Prompt.objects.filter(
+            user=request.user, is_deleted=False, is_blueprint_draft=False,
+        ).exclude(
+            blueprint_design__isnull=False,
+        ).order_by('-created_at')
+
+        for prompt in legacy_prompts:
             latest = AgentTransformation.objects.filter(prompt=prompt).order_by('-created_at').first()
             if not latest:
                 continue
@@ -83,6 +132,9 @@ class MyTransformationListView(APIView):
                 result_id=latest.id,
             ).order_by('-finished_at').first()
             rows.append({
+                'design_id': None,
+                'recipe_id': None,
+                'design_status': 'success',
                 'prompt_id': prompt.id,
                 'prompt_title': prompt.title,
                 'transformation_id': latest.id,
@@ -97,6 +149,8 @@ class MyTransformationListView(APIView):
                 'created_at': latest.created_at,
                 'task_id': latest_task.task_id if latest_task else None,
             })
+
+        rows.sort(key=lambda row: row['created_at'], reverse=True)
         serializer = MyTransformationSerializer(rows, many=True)
         return Response(serializer.data)
 

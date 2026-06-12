@@ -60,6 +60,9 @@ class BlueprintDesignSerializer(serializers.ModelSerializer):
 
 
 class MyTransformationSerializer(serializers.Serializer):
+    design_id = serializers.IntegerField(required=False, allow_null=True)
+    recipe_id = serializers.IntegerField(required=False, allow_null=True)
+    design_status = serializers.CharField(required=False, allow_blank=True)
     prompt_id = serializers.IntegerField()
     prompt_title = serializers.CharField()
     transformation_id = serializers.IntegerField()
