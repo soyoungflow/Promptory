@@ -28,10 +28,10 @@ services:
     expose:
       - "8000"
     environment:
-      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
       HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
       HF_TORCH_DTYPE: ${HF_TORCH_DTYPE:-float16}
+      HF_MAX_NEW_TOKENS: ${HF_MAX_NEW_TOKENS:-512}
       ROOT_PATH: /ai
     volumes:
       - hf_cache:/root/.cache/huggingface
@@ -74,7 +74,7 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       FASTAPI_URL: http://ai_server:8000
-      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      AI_MODE: ${AI_MODE:-mock}
       HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
       HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
     depends_on:
@@ -118,7 +118,7 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
       FASTAPI_URL: http://ai_server:8000
-      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      AI_MODE: ${AI_MODE:-mock}
       HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
       HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
       CELERY_METRICS_PORT: "9100"

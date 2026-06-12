@@ -62,6 +62,12 @@ class AgentTransformation(models.Model):
     system_messages = models.JSONField(default=list)
     confidence_score = models.FloatField(default=0.0)
     model_used = models.CharField(max_length=100, default='')
+    ai_mode = models.CharField(
+        max_length=10,
+        default='mock',
+        choices=[('mock', 'mock'), ('real', 'real')],
+        verbose_name='AI 실행 모드',
+    )
     overall_pattern = models.CharField(
         max_length=20,
         default='Sequential',

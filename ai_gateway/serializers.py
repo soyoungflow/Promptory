@@ -3,14 +3,18 @@ from rest_framework import serializers
 from .models import AgentTransformation, BlueprintDesign
 
 
+class TransformEnqueueSerializer(serializers.Serializer):
+    blueprint_design_id = serializers.IntegerField(required=False, allow_null=True)
+
+
 class AgentTransformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = AgentTransformation
         fields = (
             'id', 'prompt', 'decomposed_steps', 'suggested_tools',
-            'system_messages', 'confidence_score', 'model_used', 'created_at',
-            'overall_pattern', 'context_strategy_summary', 'harness_strategy_summary',
-            'quality_strategy_summary',
+            'system_messages', 'confidence_score', 'model_used', 'ai_mode',
+            'created_at', 'overall_pattern', 'context_strategy_summary',
+            'harness_strategy_summary', 'quality_strategy_summary',
         )
 
 
@@ -18,6 +22,7 @@ class TaskStatusSerializer(serializers.Serializer):
     task_id = serializers.UUIDField()
     task_type = serializers.CharField()
     status = serializers.CharField()
+    ai_mode = serializers.CharField(required=False, allow_blank=True)
     started_at = serializers.DateTimeField(allow_null=True)
     finished_at = serializers.DateTimeField(allow_null=True)
     error_message = serializers.CharField(allow_blank=True)
@@ -70,6 +75,7 @@ class MyTransformationSerializer(serializers.Serializer):
     suggested_tools = serializers.JSONField()
     confidence_score = serializers.FloatField()
     model_used = serializers.CharField()
+    ai_mode = serializers.CharField(required=False, allow_blank=True)
     overall_pattern = serializers.CharField(required=False, allow_blank=True)
     context_strategy_summary = serializers.CharField(required=False, allow_blank=True)
     harness_strategy_summary = serializers.CharField(required=False, allow_blank=True)

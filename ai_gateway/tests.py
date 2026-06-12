@@ -20,6 +20,7 @@ MOCK_TRANSFORM = {
     'system_messages': ['조사하세요.', '작성하세요.'],
     'confidence_score': 0.88,
     'model_used': 'mock',
+    'ai_mode': 'mock',
 }
 
 
@@ -51,7 +52,42 @@ class TransformApiTests(APITestCase):
         self.assertIn('task_id', response.data)
         self.assertEqual(response.data['status'], 'PENDING')
         self.assertIn('/api/tasks/', response.data['status_url'])
+        self.assertEqual(response.data['ai_mode'], 'mock')
+        self.assertEqual(response.data['prompt_id'], self.prompt.id)
         self.assertTrue(Task.objects.filter(prompt=self.prompt, task_type='transform').exists())
+        mock_delay.assert_called_once()
+
+    @patch('ai_gateway.views.transform_prompt.delay')
+    def test_transform_with_blueprint_design_id(self, mock_delay):
+        draft = Prompt.objects.create(
+            user=self.author,
+            category=self.category,
+            title='[설계 초안]',
+            content='설계 본문',
+            ai_model='other',
+            prompt_type='single_prompt',
+            is_blueprint_draft=True,
+        )
+        design = BlueprintDesign.objects.create(
+            user=self.author,
+            title='설계',
+            brief='자동화 요청입니다.',
+            status='pending',
+            source_prompt=draft,
+        )
+        self.client.force_authenticate(user=self.author)
+
+        response = self.client.post(
+            f'/api/prompts/{draft.id}/transform/',
+            {'blueprint_design_id': design.id},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(
+            Task.objects.get(task_id=response.data['task_id']).task_type,
+            'blueprint_design',
+        )
         mock_delay.assert_called_once()
 
     def test_non_author_cannot_transform(self):
@@ -275,18 +311,19 @@ class BlueprintDesignApiTests(APITestCase):
             transformation=self.transformation,
         )
 
-    @patch('ai_gateway.blueprint_views.transform_prompt.delay')
-    def test_create_blueprint_design(self, mock_delay):
+    def test_create_blueprint_design(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post('/api/blueprints/design/', {
             'brief': '매일 슬랙에 요약을 보내는 자동화를 만들고 싶습니다.',
             'extra_context': 'GA4 사용 중',
         }, format='json')
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED, response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertIn('id', response.data)
-        self.assertIn('task_id', response.data)
-        self.assertTrue(BlueprintDesign.objects.filter(user=self.user).exists())
-        mock_delay.assert_called_once()
+        self.assertIn('prompt_id', response.data)
+        self.assertIn('transform_url', response.data)
+        self.assertNotIn('task_id', response.data)
+        design = BlueprintDesign.objects.get(pk=response.data['id'])
+        self.assertEqual(design.status, 'pending')
 
     def test_anonymous_cannot_create_design(self):
         response = self.client.post('/api/blueprints/design/', {

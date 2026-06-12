@@ -15,12 +15,14 @@ from .serializers import (
     AgentTransformationSerializer,
     SimilarPromptSerializer,
     TaskStatusSerializer,
+    TransformEnqueueSerializer,
 )
+from .services.ai_mode import get_ai_mode
 from .services.similarity import find_similar
 
 
 class TransformPromptView(APIView):
-    """POST /api/prompts/<id>/transform/ — author only, async transform."""
+    """POST /api/prompts/<id>/transform/ — author only, async transform (mock|real)."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -33,9 +35,24 @@ class TransformPromptView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        body = TransformEnqueueSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        design_id = body.validated_data.get('blueprint_design_id')
+
+        task_type = 'transform'
+        if design_id is not None:
+            get_object_or_404(
+                BlueprintDesign,
+                pk=design_id,
+                user=request.user,
+                source_prompt=prompt,
+            )
+            task_type = 'blueprint_design'
+            BlueprintDesign.objects.filter(pk=design_id).update(status='processing')
+
         task = Task.objects.create(
             task_id=uuid.uuid4(),
-            task_type='transform',
+            task_type=task_type,
             status='PENDING',
             prompt=prompt,
             user=request.user,
@@ -45,6 +62,8 @@ class TransformPromptView(APIView):
             'task_id': str(task.task_id),
             'status': 'PENDING',
             'status_url': f'/api/tasks/{task.task_id}/status/',
+            'prompt_id': prompt.id,
+            'ai_mode': get_ai_mode(),
         }, status=status.HTTP_202_ACCEPTED)
 
 
@@ -63,6 +82,7 @@ class TaskStatusView(APIView):
             'error_message': task.error_message,
             'result_id': task.result_id,
             'created_at': task.created_at,
+            'ai_mode': get_ai_mode(),
         }
         if task.started_at and task.finished_at:
             payload['elapsed_seconds'] = (task.finished_at - task.started_at).total_seconds()
@@ -72,6 +92,12 @@ class TaskStatusView(APIView):
                 payload['result_url'] = f'/api/blueprints/design/{design.id}/'
         elif task.status == 'SUCCESS' and task.task_type == 'transform':
             payload['result_url'] = f'/api/prompts/{task.prompt_id}/agent/'
+        if task.status == 'SUCCESS' and task.result_id:
+            saved_mode = AgentTransformation.objects.filter(pk=task.result_id).values_list(
+                'ai_mode', flat=True,
+            ).first()
+            if saved_mode:
+                payload['ai_mode'] = saved_mode
         serializer = TaskStatusSerializer(payload)
         return Response(serializer.data)
 

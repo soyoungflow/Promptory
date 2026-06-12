@@ -5,12 +5,10 @@ import re
 from fastapi import FastAPI, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from mock import mock_embed, mock_transform
 from schemas import (
     ContextPolicy,
     EmbedRequest,
     EmbedResponse,
-    HarnessPolicy,
     HealthResponse,
     KnowledgeRef,
     StepSpec,
@@ -22,8 +20,6 @@ from schemas import (
 # nginx가 /ai/* → ai_server:8000/* 로 프록시할 때 Swagger가 /ai/openapi.json 을 보도록 함
 app = FastAPI(title='Promptory AI Server', root_path=os.getenv('ROOT_PATH', ''))
 Instrumentator().instrument(app).expose(app)
-
-PROVIDER = os.getenv('LLM_PROVIDER', 'mock')
 
 HF_TRANSFORM_SYSTEM = """다음 사용자 프롬프트를 {max_steps}단계 에이전트 워크플로우로 분해해.
 각 단계마다 다음 5가지를 결정해:
@@ -168,8 +164,6 @@ def _build_transform_response(data: dict, steps: list[StepSpec]) -> TransformRes
 
 @app.get('/health', response_model=HealthResponse)
 def health():
-    if PROVIDER == 'mock':
-        return HealthResponse(status='ok', model_loaded=True, provider='mock')
     from models.llm import is_model_loaded  # noqa: WPS433
 
     loaded = is_model_loaded()
@@ -182,16 +176,14 @@ def health():
 
 @app.post('/transform', response_model=TransformResponse)
 def transform(req: TransformRequest):
-    if PROVIDER == 'mock':
-        return mock_transform(req.prompt_text)
-
     from models.llm import generate  # noqa: WPS433
 
     system = HF_TRANSFORM_SYSTEM.format(
         max_steps=req.max_steps,
         prompt_text=req.prompt_text,
     )
-    text = generate(system, max_new_tokens=1024)
+    max_new_tokens = int(os.getenv('HF_MAX_NEW_TOKENS', '512'))
+    text = generate(system, max_new_tokens=max_new_tokens)
     try:
         data = _extract_json_object(text)
         steps = _normalize_steps(data)
@@ -204,9 +196,6 @@ def transform(req: TransformRequest):
 
 @app.post('/embed', response_model=EmbedResponse)
 def embed(req: EmbedRequest):
-    if PROVIDER == 'mock':
-        return mock_embed(req.text)
-
     from models.embedding import embed as do_embed  # noqa: WPS433
 
     vector = do_embed(req.text)

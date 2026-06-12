@@ -1,5 +1,3 @@
-import uuid
-
 from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from rest_framework import status
@@ -8,9 +6,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from prompts.models import Prompt, RecipeCategory
-from tasks.celery_tasks import transform_prompt
-from tasks.models import Task
-
 from .models import BlueprintDesign
 from .serializers import (
     BlueprintDesignCreateSerializer,
@@ -64,25 +59,17 @@ class BlueprintDesignListCreateView(APIView):
             title=title,
             brief=data['brief'],
             extra_context=data.get('extra_context', ''),
-            status='processing',
+            status='pending',
             source_prompt=source_prompt,
         )
-        task = Task.objects.create(
-            task_id=uuid.uuid4(),
-            task_type='blueprint_design',
-            status='PENDING',
-            prompt=source_prompt,
-            user=request.user,
-        )
-        transform_prompt.delay(str(task.task_id), source_prompt.id)
 
         return Response({
             'id': design.id,
-            'task_id': str(task.task_id),
-            'status': 'PENDING',
-            'status_url': f'/api/tasks/{task.task_id}/status/',
+            'prompt_id': source_prompt.id,
+            'status': 'pending',
             'design_url': f'/api/blueprints/design/{design.id}/',
-        }, status=status.HTTP_202_ACCEPTED)
+            'transform_url': f'/api/prompts/{source_prompt.id}/transform/',
+        }, status=status.HTTP_201_CREATED)
 
 
 class BlueprintDesignDetailView(APIView):

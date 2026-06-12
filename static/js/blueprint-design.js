@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (!res.ok) {
         formError.style.display = '';
-        formError.textContent = data?.detail || data?.brief?.[0] || '요청에 실패했습니다.';
+        formError.textContent = data?.detail || data?.brief?.[0] || '설계서 생성에 실패했습니다.';
         submitBtn.disabled = false;
         return;
       }
@@ -325,11 +325,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.id && !designIdFromPage) {
         history.replaceState(null, '', `/blueprints/${data.id}/`);
       }
+
+      const transformRes = await Api.post(`/prompts/${data.prompt_id}/transform/`, {
+        blueprint_design_id: data.id,
+      });
+      if (!transformRes.res.ok) {
+        formError.style.display = '';
+        formError.textContent =
+          transformRes.data?.detail || 'AI 변환 요청에 실패했습니다.';
+        submitBtn.disabled = false;
+        return;
+      }
+
       wizard.style.display = 'none';
       processing.style.display = '';
       elapsedEl.textContent = '0';
-      connectTaskWebSocket(data.task_id);
-      pollTaskStatus(data.task_id);
+      connectTaskWebSocket(transformRes.data.task_id);
+      pollTaskStatus(transformRes.data.task_id);
     } catch {
       formError.style.display = '';
       formError.textContent = '서버 오류가 발생했습니다.';

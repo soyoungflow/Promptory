@@ -22,6 +22,7 @@ MOCK_TRANSFORM = {
     'system_messages': ['조사', '작성', '검토', '마무리'],
     'confidence_score': 0.92,
     'model_used': 'mock',
+    'ai_mode': 'mock',
 }
 
 MOCK_EMBED = {

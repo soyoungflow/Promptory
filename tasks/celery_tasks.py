@@ -5,6 +5,7 @@ from celery import shared_task
 from django.utils import timezone
 
 from ai_gateway.models import AgentTransformation, BlueprintDesign, PromptEmbedding
+from ai_gateway.services.ai_mode import get_ai_mode
 from ai_gateway.services.llm_client import LLMClient
 from prompts.models import Prompt
 from tasks.models import Task
@@ -34,7 +35,12 @@ def _set_status(task: Task, status: str, **extra) -> None:
 def transform_prompt(self, task_id: str, prompt_id: int):
     task = Task.objects.get(task_id=task_id)
     _set_status(task, 'PROCESSING', started_at=timezone.now())
-    logger.info('transform_started', task_id=str(task_id), prompt_id=prompt_id)
+    logger.info(
+        'transform_started',
+        task_id=str(task_id),
+        prompt_id=prompt_id,
+        ai_mode=get_ai_mode(),
+    )
 
     agent_transformation_total, model_inference_duration_seconds = _custom_metrics()
 
@@ -59,6 +65,7 @@ def transform_prompt(self, task_id: str, prompt_id: int):
             system_messages=result.get('system_messages', []),
             confidence_score=float(result.get('confidence_score', 0.0)),
             model_used=result.get('model_used', ''),
+            ai_mode=result.get('ai_mode', get_ai_mode()),
             overall_pattern=result.get('overall_pattern', 'Sequential'),
             context_strategy_summary=result.get('context_strategy_summary', ''),
             harness_strategy_summary=result.get('harness_strategy_summary', ''),

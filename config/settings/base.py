@@ -131,9 +131,10 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
-# Phase 4: AI server (FastAPI)
+# Phase 4: AI server (FastAPI) — mock|real 전환은 Django AI_MODE 가 담당
 FASTAPI_URL = config('FASTAPI_URL', default='http://127.0.0.1:8001')
-LLM_PROVIDER = config('LLM_PROVIDER', default='mock')
+_raw_ai_mode = config('AI_MODE', default=config('LLM_PROVIDER', default='mock'))
+AI_MODE = 'real' if _raw_ai_mode.strip().lower() in ('real', 'huggingface', 'hf') else 'mock'
 HF_MODEL_NAME = config('HF_MODEL_NAME', default='LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct')
 HF_EMBEDDING_MODEL = config('HF_EMBEDDING_MODEL', default='jhgan/ko-sroberta-multitask')
 
