@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}프롬프트 탐색 — Promptory{% endblock %}
+{% block title %}마켓 탐색 — Promptory{% endblock %}
 {% block main_class %}main-container main-container-wide{% endblock %}
 
 {% block content %}
@@ -17,7 +17,7 @@
     <div id="type-sidebar" class="sidebar-list">
       <button class="sidebar-item" type="button" data-prompt-type="">전체 유형</button>
       <button class="sidebar-item" type="button" data-prompt-type="single_prompt">단일 프롬프트</button>
-      <button class="sidebar-item" type="button" data-prompt-type="agent_recipe">에이전트 레시피</button>
+      <button class="sidebar-item" type="button" data-prompt-type="agent_recipe">에이전트 설계서</button>
     </div>
 
     <div class="sidebar-divider"></div>
@@ -31,8 +31,8 @@
     <div class="explore-header">
       <div>
         <span class="eyebrow">Explore</span>
-        <h1>프롬프트 탐색</h1>
-        <p id="explore-subtitle">단일 프롬프트와 에이전트 레시피를 검색·유형으로 찾아보세요.</p>
+        <h1 id="explore-title">마켓 탐색</h1>
+        <p id="explore-subtitle">단일 프롬프트와 에이전트 설계서를 검색·유형으로 찾아보세요.</p>
       </div>
       <div class="view-toggle" aria-label="보기 방식">
         <button type="button" class="active">Grid</button>
@@ -43,7 +43,7 @@
     <!-- 검색 + 필터 바 -->
     <div class="filter-bar">
       <div class="search-wrap">
-        <input type="text" id="search-input" class="search-input" placeholder="프롬프트 검색...">
+        <input type="text" id="search-input" class="search-input" placeholder="검색어 입력...">
         <button class="btn btn-search" id="search-btn">검색</button>
       </div>
       <div class="filter-row">
@@ -64,7 +64,7 @@
         <select id="filter-prompt-type" class="filter-select">
           <option value="">전체 유형</option>
           <option value="single_prompt">단일 프롬프트</option>
-          <option value="agent_recipe">에이전트 레시피</option>
+          <option value="agent_recipe">에이전트 설계서</option>
         </select>
         <select id="filter-is-free" class="filter-select">
           <option value="">무료 + 유료</option>
@@ -83,7 +83,7 @@
     <!-- 결과 헤더 -->
     <div class="list-header">
       <span id="result-count" class="result-count"></span>
-      <a href="{% url 'prompt-create-page' %}" class="btn btn-primary auth-only" style="display:none;">+ 프롬프트 등록</a>
+      <a href="{% url 'prompt-create-page' %}" id="explore-register-btn" class="btn btn-primary auth-only" style="display:none;">+ 콘텐츠 등록</a>
     </div>
 
     <!-- 프롬프트 카드 그리드 (JS 렌더링) -->

@@ -1,5 +1,5 @@
 /**
- * library.js — 보관함: 북마크, 좋아요, 내 프롬프트·에이전트 레시피, 내 설계서, 댓글
+ * library.js — 보관함: 북마크, 좋아요, 내 프롬프트·에이전트 설계서, 설계 이력, 댓글
  */
 document.addEventListener('DOMContentLoaded', () => {
   const guest = document.getElementById('library-guest');
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const TYPE_LABELS = {
     single_prompt: '프롬프트',
-    agent_recipe: '에이전트 레시피',
+    agent_recipe: '에이전트 설계서',
     mcp_package: 'MCP 패키지',
   };
 
@@ -57,9 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const EMPTY_GRID_MESSAGES = {
-    bookmarks: '관심 있는 프롬프트·에이전트 레시피를 저장해보세요. 상세 페이지 🔖로 나중에 다시 찾을 수 있어요.',
-    likes: '도움이 된 프롬프트·에이전트 레시피에 「도움됐어요」를 눌러보세요.',
-    mine: '아직 등록한 프롬프트·에이전트 레시피가 없어요. 설계서를 만든 뒤 레시피로 등록하거나 + 프롬프트 등록을 이용하세요.',
+    bookmarks: '관심 있는 프롬프트·에이전트 설계서를 저장해보세요. 상세 페이지 🔖로 나중에 다시 찾을 수 있어요.',
+    likes: '도움이 된 프롬프트·에이전트 설계서에 「도움됐어요」를 눌러보세요.',
+    mine: '아직 등록한 프롬프트·에이전트 설계서가 없어요. 설계서 만들기로 생성하거나 직접 등록해보세요.',
   };
 
   function renderGrid(grid, items, errorMsg, emptyMsg) {
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <p>실현하고 싶은 자동화 <strong>아이디어를 한 줄</strong> 적으면 AI가 에이전트 설계서를 만들어 드립니다.</p>
           <p style="margin-top:12px;">
             <a href="/blueprints/new/" class="btn btn-primary">설계서 만들기</a>
-            <a href="/prompts/" class="btn btn-secondary">설계서 둘러보기</a>
+            <a href="/prompts/?prompt_type=agent_recipe" class="btn btn-secondary">설계서 둘러보기</a>
           </p>
         </div>`;
       return;
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `/prompts/${row.recipe_id}/`
         : (row.design_id ? `/blueprints/${row.design_id}/` : `/prompts/${row.prompt_id}/`);
       const publishedTag = row.recipe_id
-        ? '<span class="tag tag-item" style="font-size:11px;">레시피 등록됨</span> '
+        ? '<span class="tag tag-item" style="font-size:11px;">마켓 등록됨</span> '
         : '';
       return `
       <article class="library-transform-row">
@@ -239,11 +239,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (mineList) {
-      mineCount.textContent = `내 프롬프트·레시피 ${mineList.length}개`;
+      mineCount.textContent = `내 프롬프트·설계서 ${mineList.length}개`;
       renderGrid(mineGrid, mineList, null, EMPTY_GRID_MESSAGES.mine);
     } else {
       mineCount.textContent = '';
-      renderGrid(mineGrid, [], '내 프롬프트·레시피를 불러오지 못했습니다.');
+      renderGrid(mineGrid, [], '내 프롬프트·설계서를 불러오지 못했습니다.');
     }
 
     if (transforms) {

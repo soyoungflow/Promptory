@@ -11,7 +11,7 @@
     <h1>설계서 만들기</h1>
     <p class="section-hint">
       자동화하고 싶은 업무를 설명하면 AI가 <strong>5-Layer Agent Blueprint</strong> 설계서를 작성합니다.
-      완료 후 <strong>에이전트 레시피</strong>로 등록해 마켓에 공유할 수 있습니다.
+      완료 후 <strong>에이전트 설계서</strong>로 등록해 마켓에 공유할 수 있습니다.
     </p>
   </header>
 
@@ -59,17 +59,17 @@
     <p class="transform-result-label">자동 변환 신뢰도: <strong id="bp-confidence">—</strong></p>
 
     <div class="blueprint-publish-panel">
-      <h4 class="transform-steps-title">레시피로 등록</h4>
-      <p class="section-hint">설계 결과를 에이전트 레시피 초안으로 옮겨 마켓에 공유하세요.</p>
+      <h4 class="transform-steps-title">마켓에 등록</h4>
+      <p class="section-hint">설계 결과를 에이전트 설계서로 옮겨 마켓에 공유하세요.</p>
       <div class="form-row">
         <div class="form-group">
-          <label for="publish-category">레시피 카테고리</label>
+          <label for="publish-category">설계서 카테고리</label>
           <input type="text" id="publish-category" class="form-input" placeholder="예: 마케팅">
         </div>
       </div>
       <div class="blueprint-publish-actions">
         <button type="button" class="btn btn-secondary" id="prefill-recipe-btn">등록 폼에서 수정</button>
-        <button type="button" class="btn btn-primary" id="publish-recipe-btn">바로 레시피 등록</button>
+        <button type="button" class="btn btn-primary" id="publish-recipe-btn">마켓에 등록</button>
       </div>
       <p id="publish-success" class="success-state" style="display:none;"></p>
       <p id="publish-error" class="error-state" style="display:none;"></p>

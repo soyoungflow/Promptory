@@ -2,16 +2,24 @@
 {% load static %}
 {% block title %}Promptory — AI 프롬프트·에이전트 마켓 & 커뮤니티{% endblock %}
 
+{% block main_class %}main-container main-container--home{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
 {% block content %}
+<div class="home-page">
 <section class="hero">
   <h1 class="hero-title">
     한 줄 아이디어로<br>
     <strong>나만의 AI 에이전트를 구축하세요.</strong>
   </h1>
   <p class="hero-desc">
-    Promptory는 <strong>프롬프트·에이전트 레시피·자동화 설계서</strong>를
-    등록하고 공유·판매할 수 있는 AI 워크플로 마켓이자 커뮤니티입니다.<br>
-    아이디어 한 줄이면 AI가 리서치부터 검증까지 5단계 설계서로 변환해 드립니다.
+    Promptory는 단 한 줄의 아이디어를 <strong>에이전트 자동화 설계서</strong>로
+    1분 안에 변환합니다.<br>
+    일하지마세요, 에이전트에게 시키세요.
+    리서치부터 검증까지 5단계 — AI가 알아서 짜드립니다.
+    
   </p>
   <div class="hero-cta">
     <a href="{% url 'blueprint-design-page' %}" class="btn btn-primary btn-lg">
@@ -26,7 +34,7 @@
 <section class="platform-scope">
   <h2 class="section-title">프롬프트부터 에이전트까지, 모두 한 곳에서</h2>
   <p class="section-lead">
-    단순 명령어 템플릿부터 다단계 자동화 레시피까지 — 실무에 쓰이는 AI 자산을
+    단순 명령어 템플릿부터 다단계 에이전트 설계서까지 — 실무에 쓰이는 AI 자산을
     한 플랫폼에서 발견하고, 등록하고, 거래할 수 있습니다.
   </p>
 
@@ -39,16 +47,16 @@
     </article>
 
     <article class="scope-card scope-card-highlight">
-      <span class="scope-badge">에이전트 레시피</span>
+      <span class="scope-badge">에이전트 설계서</span>
       <h3>단계별 워크플로·하네스</h3>
-      <p>리서치→실행→검증처럼 여러 단계가 묶인 에이전트 레시피를 공유하고, 다른 팀의 레시피를 가져다 쓰세요.</p>
-      <a href="{% url 'prompt-list-page' %}?prompt_type=agent_recipe" class="scope-link">레시피 탐색 →</a>
+      <p>리서치→실행→검증처럼 여러 단계가 묶인 에이전트 설계서를 공유하고, 다른 팀의 설계서를 가져다 쓰세요.</p>
+      <a href="{% url 'prompt-list-page' %}?prompt_type=agent_recipe" class="scope-link">설계서 탐색 →</a>
     </article>
 
     <article class="scope-card">
       <span class="scope-badge">AI 자동화 설계서</span>
       <h3>아이디어 → 실행 가능한 설계</h3>
-      <p>한 줄 아이디어를 5단계 설계서로 자동 변환한 뒤, 에이전트 레시피로 등록해 마켓에 올릴 수 있습니다.</p>
+      <p>한 줄 아이디어를 5단계 설계서로 자동 변환한 뒤, 에이전트 설계서로 등록해 마켓에 올릴 수 있습니다.</p>
       <a href="{% url 'blueprint-design-page' %}" class="scope-link">설계서 만들기 →</a>
     </article>
   </div>
@@ -59,7 +67,7 @@
     <div class="mc-copy">
       <h2 class="section-title section-title-left">공유하고, 팔고, 함께 다듬는 커뮤니티</h2>
       <p class="section-lead section-lead-left">
-        Promptory는 콘텐츠 마켓이면서 동시에 실무자들이 서로의 프롬프트와 레시피를
+        Promptory는 콘텐츠 마켓이면서 동시에 실무자들이 서로의 프롬프트와 설계서를
         검증·개선하는 커뮤니티입니다. 좋은 아이디어는 등록하고, 쓸 만한 것은 북마크하고,
         피드백은 댓글로 남기세요.
       </p>
@@ -74,7 +82,7 @@
         <span class="mc-feature-icon">💰</span>
         <div>
           <strong>무료·유료 등록</strong>
-          <p>오픈 소스처럼 무료로 공유하거나, 검증된 레시피는 가격을 정해 판매할 수 있습니다.</p>
+          <p>오픈 소스처럼 무료로 공유하거나, 검증된 설계서는 가격을 정해 판매할 수 있습니다.</p>
         </div>
       </li>
       <li class="mc-feature-item">
@@ -88,7 +96,7 @@
         <span class="mc-feature-icon">💬</span>
         <div>
           <strong>댓글 &amp; 피드백</strong>
-          <p>사용 후기와 개선 제안을 남기고, 제작자와 커뮤니티가 함께 레시피를 다듬습니다.</p>
+          <p>사용 후기와 개선 제안을 남기고, 제작자와 커뮤니티가 함께 설계서를 다듬습니다.</p>
         </div>
       </li>
       <li class="mc-feature-item">
@@ -103,7 +111,7 @@
 </section>
 
 <section class="features">
-  <h2 class="section-title">왜 설계서로 공유해야 할까요?</h2>
+  <h2 class="section-title">설계서는 어떻게 만들어지나요?</h2>
 
   <div class="feature-grid feature-grid-cards">
     <div class="feature-card">
@@ -151,7 +159,7 @@
     <li class="step-item">
       <div class="step-number">3</div>
       <h3>마켓에 등록</h3>
-      <p>설계서를 에이전트 레시피로 등록해 공유·판매하거나, 보관함에서 계속 다듬으세요.</p>
+      <p>설계 결과를 마켓에 등록해 공유·판매하거나, 보관함에서 계속 다듬으세요.</p>
     </li>
   </ol>
 </section>
@@ -165,4 +173,5 @@
     <a href="{% url 'prompt-list-page' %}" class="btn btn-ghost btn-lg">마켓 탐색</a>
   </div>
 </section>
+</div>
 {% endblock %}

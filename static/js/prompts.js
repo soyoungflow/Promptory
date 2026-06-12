@@ -33,7 +33,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const categorySidebar = document.getElementById('category-sidebar');
   const sidebarCategorySection = document.getElementById('sidebar-category-section');
   const aiModelEl     = document.getElementById('filter-ai-model');
+  const exploreTitle = document.getElementById('explore-title');
   const exploreSubtitle = document.getElementById('explore-subtitle');
+  const exploreRegisterBtn = document.getElementById('explore-register-btn');
+
+  const EXPLORE_COPY = {
+    all: {
+      pageTitle: '마켓 탐색 — Promptory',
+      title: '마켓 탐색',
+      subtitle: '단일 프롬프트와 에이전트 설계서를 검색·유형으로 찾아보세요.',
+      placeholder: '검색어 입력...',
+      register: '+ 콘텐츠 등록',
+      empty: '조건에 맞는 결과가 없어요. 필터를 바꾸거나 새 콘텐츠를 등록해보세요.',
+      emptySearch: (q) => `'${q}'로 찾은 결과가 없어요. 다른 키워드로 시도하거나 새 콘텐츠를 등록해보세요.`,
+    },
+    single_prompt: {
+      pageTitle: '프롬프트 탐색 — Promptory',
+      title: '프롬프트 탐색',
+      subtitle: '단일 프롬프트를 카테고리·AI 모델·태그로 찾아보세요.',
+      placeholder: '프롬프트 검색...',
+      register: '+ 프롬프트 등록',
+      empty: '조건에 맞는 프롬프트가 없어요. 필터를 바꾸거나 새 프롬프트를 등록해보세요.',
+      emptySearch: (q) => `'${q}'로 찾은 프롬프트가 없어요. 다른 키워드로 시도하거나 등록해보세요.`,
+    },
+    agent_recipe: {
+      pageTitle: '에이전트 설계서 탐색 — Promptory',
+      title: '에이전트 설계서 탐색',
+      subtitle: '에이전트 설계서를 검색·태그·카테고리로 찾아보세요.',
+      placeholder: '에이전트 설계서 검색...',
+      register: '+ 에이전트 설계서 등록',
+      empty: '조건에 맞는 에이전트 설계서가 없어요. 필터를 바꾸거나 설계서 만들기로 새로 등록해보세요.',
+      emptySearch: (q) => `'${q}'로 찾은 설계서가 없어요. 다른 키워드로 시도하거나 설계서 만들기를 이용해보세요.`,
+    },
+  };
   const isFreeEl      = document.getElementById('filter-is-free');
   const promptTypeEl  = document.getElementById('filter-prompt-type');
   const typeSidebar   = document.getElementById('type-sidebar');
@@ -164,8 +196,17 @@ document.addEventListener('DOMContentLoaded', () => {
     return (promptTypeEl?.value || '') === 'agent_recipe';
   }
 
+  function getExploreCopyKey() {
+    const type = promptTypeEl?.value || '';
+    if (type === 'agent_recipe') return 'agent_recipe';
+    if (type === 'single_prompt') return 'single_prompt';
+    return 'all';
+  }
+
   function syncExploreFiltersForType() {
     const recipeBrowse = isAgentRecipeBrowse();
+    const copy = EXPLORE_COPY[getExploreCopyKey()];
+
     if (sidebarCategorySection) {
       sidebarCategorySection.style.display = recipeBrowse ? 'none' : '';
     }
@@ -179,11 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.classList.toggle('active', btn.dataset.category === '');
       });
     }
-    if (exploreSubtitle) {
-      exploreSubtitle.textContent = recipeBrowse
-        ? '에이전트 레시피를 검색·태그로 찾아보세요.'
-        : '단일 프롬프트를 카테고리·모델로 찾아보세요.';
-    }
+    if (exploreTitle) exploreTitle.textContent = copy.title;
+    if (exploreSubtitle) exploreSubtitle.textContent = copy.subtitle;
+    if (searchInput) searchInput.placeholder = copy.placeholder;
+    if (exploreRegisterBtn) exploreRegisterBtn.textContent = copy.register;
+    document.title = copy.pageTitle;
   }
 
   function selectPromptType(typeValue, activeButton) {
@@ -222,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 프롬프트 카드 렌더링
   const PROMPT_TYPE_LABELS = {
     single_prompt: '단일',
-    agent_recipe: '레시피',
+    agent_recipe: '설계서',
     mcp_package: 'MCP',
   };
   const AGENT_PATTERN_LABELS = {
@@ -298,9 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!results.length) {
         const q = (document.getElementById('search-input')?.value || '').trim();
+        const copy = EXPLORE_COPY[getExploreCopyKey()];
         const msg = q
-          ? `'${Api.escapeHtml(q)}'로 찾은 결과가 없어요. 다른 키워드로 시도해보거나, 새 프롬프트를 등록해보세요.`
-          : '조건에 맞는 결과가 없어요. 필터를 바꾸거나 새 프롬프트를 등록해보세요.';
+          ? Api.escapeHtml(copy.emptySearch(q))
+          : Api.escapeHtml(copy.empty);
         grid.innerHTML = `<div class="empty-state">${msg}</div>`;
         pagination.innerHTML = '';
         return;

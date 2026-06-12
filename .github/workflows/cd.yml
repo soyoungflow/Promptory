@@ -162,6 +162,9 @@ jobs:
               exit 1
             fi
 
+            echo "=== [8a/9] Seed demo data (idempotent) ==="
+            docker compose exec -T web python manage.py seed_mockup || echo "WARN: seed_mockup failed (continuing)"
+
             echo "=== [8b/9] Collect static files (admin CSS 등) ==="
             docker compose exec -T web python manage.py collectstatic --noinput
             docker compose up -d --force-recreate nginx

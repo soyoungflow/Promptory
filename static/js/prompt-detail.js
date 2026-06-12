@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const PROMPT_TYPE_LABELS = {
     single_prompt: '단일 프롬프트',
-    agent_recipe: '에이전트 레시피',
+    agent_recipe: '에이전트 설계서',
     mcp_package: 'MCP 패키지',
   };
   const AGENT_PATTERN_LABELS = {
@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
       section.style.display = '';
       list.innerHTML = data.map(item => {
         const typeTag = item.prompt_type === 'agent_recipe'
-          ? '<span class="tag tag-agent tag-sm">레시피</span>'
+          ? '<span class="tag tag-agent tag-sm">설계서</span>'
           : '<span class="tag tag-type tag-sm">프롬프트</span>';
         const pattern = item.agent_pattern
           ? ` · ${Api.escapeHtml(AGENT_PATTERN_LABELS[item.agent_pattern] || item.agent_pattern)}`

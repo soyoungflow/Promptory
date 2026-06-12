@@ -20,7 +20,7 @@
       <div class="nav-links">
         <a href="{% url 'home-page' %}" class="nav-link {% if request.resolver_match.url_name == 'home-page' %}active{% endif %}">홈</a>
         <a href="{% url 'prompt-list-page' %}" class="nav-link {% if request.resolver_match.url_name == 'prompt-list-page' %}active{% endif %}">탐색</a>
-        <a href="{% url 'prompt-create-page' %}" class="nav-link auth-only {% if request.resolver_match.url_name == 'prompt-create-page' or request.resolver_match.url_name == 'prompt-edit-page' %}active{% endif %}" style="display:none;">+ 프롬프트 등록</a>
+        <a href="{% url 'prompt-create-page' %}" class="nav-link auth-only {% if request.resolver_match.url_name == 'prompt-create-page' or request.resolver_match.url_name == 'prompt-edit-page' %}active{% endif %}" style="display:none;">+ 등록</a>
         <a href="{% url 'blueprint-design-page' %}" class="nav-link nav-link-cta {% if request.resolver_match.url_name == 'blueprint-design-page' or request.resolver_match.url_name == 'blueprint-design-detail-page' %}active{% endif %}">설계서 만들기</a>
       </div>
     </div>

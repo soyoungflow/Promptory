@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.recipe) {
           publishSuccess.style.display = '';
           publishSuccess.innerHTML =
-            `이미 레시피로 등록됨 — <a href="/prompts/${data.recipe}/">보기</a>`;
+            `이미 마켓에 등록됨 — <a href="/prompts/${data.recipe}/">보기</a>`;
           publishBtn.disabled = true;
           prefillBtn.disabled = true;
         }
@@ -396,13 +396,13 @@ document.addEventListener('DOMContentLoaded', () => {
       );
       if (!res.ok) {
         publishError.style.display = '';
-        publishError.textContent = data?.detail || '레시피 등록에 실패했습니다.';
+        publishError.textContent = data?.detail || '마켓 등록에 실패했습니다.';
         publishBtn.disabled = false;
         return;
       }
       publishSuccess.style.display = '';
       publishSuccess.innerHTML =
-        `레시피가 등록되었습니다 — <a href="${data.recipe_url}">보기</a> · <a href="${data.edit_url}">수정</a>`;
+        `에이전트 설계서가 등록되었습니다 — <a href="${data.recipe_url}">보기</a> · <a href="${data.edit_url}">수정</a>`;
     } catch {
       publishError.style.display = '';
       publishError.textContent = '서버 오류가 발생했습니다.';
