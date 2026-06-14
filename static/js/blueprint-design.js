@@ -229,19 +229,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
   async function pollDesignUntilReady(id) {
     const started = Date.now();
     const maxWait = 300000;
+    stopPolling();
     pollTimer = setInterval(async () => {
       elapsedEl.textContent = Math.floor((Date.now() - started) / 1000);
       try {
         const { res, data } = await Api.get(`/blueprints/design/${id}/`);
         if (!res.ok) return;
         if (data.status === 'success' && data.transformation) {
-          clearInterval(pollTimer);
+          stopPolling();
           renderTransformation(data.transformation);
         } else if (data.status === 'fail') {
-          clearInterval(pollTimer);
+          stopPolling();
           showPageError('설계 생성에 실패했습니다.');
           wizard.style.display = '';
         }
@@ -249,14 +257,14 @@ document.addEventListener('DOMContentLoaded', () => {
         /* retry */
       }
       if (Date.now() - started > maxWait) {
-        clearInterval(pollTimer);
+        stopPolling();
         showPageError('예상보다 오래 걸리네요. 다시 시도하거나 잠시 후 새로고침해 주세요.');
       }
     }, 1500);
   }
 
   async function onTaskFinished(taskPayload) {
-    if (pollTimer) clearInterval(pollTimer);
+    stopPolling();
     if (taskSocket) {
       taskSocket.close();
       taskSocket = null;
@@ -272,12 +280,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function pollTaskStatus(taskId) {
+    if (!taskId) return;
     const started = Date.now();
+    let notFoundStreak = 0;
+    stopPolling();
     pollTimer = setInterval(async () => {
       elapsedEl.textContent = Math.floor((Date.now() - started) / 1000);
       try {
         const { res, data } = await Api.get(`/tasks/${taskId}/status/`);
+        if (res.status === 404) {
+          notFoundStreak += 1;
+          if (notFoundStreak >= 3 && currentDesignId) {
+            stopPolling();
+            pollDesignUntilReady(currentDesignId);
+          }
+          return;
+        }
         if (!res.ok) return;
+        notFoundStreak = 0;
         if (data.status === 'SUCCESS' || data.status === 'FAIL') {
           onTaskFinished({
             task_id: taskId,
@@ -337,11 +357,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      const taskId = transformRes.data?.task_id;
+      if (!taskId && !currentDesignId) {
+        formError.style.display = '';
+        formError.textContent = '변환 작업 ID를 받지 못했습니다. 잠시 후 다시 시도해 주세요.';
+        submitBtn.disabled = false;
+        return;
+      }
+
       wizard.style.display = 'none';
       processing.style.display = '';
       elapsedEl.textContent = '0';
-      connectTaskWebSocket(transformRes.data.task_id);
-      pollTaskStatus(transformRes.data.task_id);
+
+      if (taskId) connectTaskWebSocket(taskId);
+      // 설계서 상세 API가 Task 결과와 동기화되므로 primary 폴링으로 사용
+      if (currentDesignId) pollDesignUntilReady(currentDesignId);
+      else if (taskId) pollTaskStatus(taskId);
     } catch {
       formError.style.display = '';
       formError.textContent = '서버 오류가 발생했습니다.';

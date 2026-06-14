@@ -44,7 +44,7 @@ def sync_design_from_task(design: BlueprintDesign) -> BlueprintDesign:
     task = (
         Task.objects.filter(
             prompt_id=design.source_prompt_id,
-            task_type='blueprint_design',
+            task_type__in=('blueprint_design', 'transform'),
         )
         .order_by('-created_at')
         .first()

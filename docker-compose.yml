@@ -28,6 +28,8 @@ services:
     expose:
       - "8000"
     environment:
+      LLM_PROVIDER: ${AI_MODE:-mock}
+      AI_MODE: ${AI_MODE:-mock}
       HF_MODEL_NAME: ${HF_MODEL_NAME:-LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct}
       HF_EMBEDDING_MODEL: ${HF_EMBEDDING_MODEL:-jhgan/ko-sroberta-multitask}
       HF_TORCH_DTYPE: ${HF_TORCH_DTYPE:-float16}

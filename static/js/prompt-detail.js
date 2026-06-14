@@ -151,8 +151,32 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
-  function renderWorkflowSteps(steps) {
+  function paidOverlayHtml() {
+    return `
+      <div class="paid-overlay">
+        <p class="paid-overlay-msg">결제 후에 보기 가능합니다.</p>
+      </div>
+    `;
+  }
+
+  function renderWorkflowSteps(steps, isPaid = false) {
     if (!steps?.length) return '';
+    if (isPaid) {
+      return `
+        <ol class="recipe-steps">
+          ${steps.slice(0, 3).map((s, index) => `
+            <li class="recipe-step-card">
+              <div class="recipe-step-head">
+                <span class="recipe-step-num">Step ${s.step || index + 1}</span>
+                <strong>${Api.escapeHtml(s.name || '단계')}</strong>
+                <span class="tag tag-tool">•••</span>
+              </div>
+              <p class="recipe-step-msg">유료 설계서 — 결제 후 단계별 시스템 메시지·도구·검증 기준을 확인할 수 있습니다.</p>
+            </li>
+          `).join('')}
+        </ol>
+      `;
+    }
     return `
       <ol class="recipe-steps">
         ${steps.map(s => `
@@ -182,7 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
         `<a class="file-link" href="${Api.safeUrl(f.file)}" target="_blank" rel="noopener">첨부: ${Api.escapeHtml(f.file_name)}</a>`
       ).join('');
 
-      const isPaid = !p.is_free;
+      const isPaid = p.is_free === false || p.is_free === 'false'
+        || (Number(p.price) > 0 && p.is_free !== true && p.is_free !== 'true');
       const isRecipe = p.prompt_type === 'agent_recipe';
       const previewContent = isPaid ? getPaidPreviewContent(p.content, 3) : Api.escapeHtml(p.content);
       const typeLabel = PROMPT_TYPE_LABELS[p.prompt_type] || p.prompt_type;
@@ -190,10 +215,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const recipeCategoryName = p.recipe_category?.name || '';
       const workflowHtml = isRecipe && (p.workflow_steps || []).length
         ? `
-          <div class="recipe-workflow-section">
+          <div class="recipe-workflow-section prompt-content-box ${isPaid ? 'is-paid-preview' : ''}">
             <h3 class="section-title">자동화 단계 (5-Layer Blueprint)</h3>
             ${patternLabel ? `<p class="recipe-pattern"><span class="tag tag-agent">패턴: ${Api.escapeHtml(patternLabel)}</span></p>` : ''}
-            ${renderWorkflowSteps(p.workflow_steps)}
+            <div class="${isPaid ? 'paid-preview-body' : ''}">
+              ${renderWorkflowSteps(p.workflow_steps, isPaid)}
+            </div>
+            ${isPaid ? paidOverlayHtml() : ''}
           </div>
           <div class="detail-divider"></div>
         `
@@ -226,11 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="prompt-content-box ${isPaid ? 'is-paid-preview' : ''}">
           <div class="content-label">${isRecipe ? '시스템 프롬프트 / 컨텍스트' : '프롬프트 본문'}</div>
           <pre class="prompt-content">${previewContent}</pre>
-          ${isPaid ? `
-            <div class="paid-overlay">
-              <p class="paid-overlay-msg">결제 후에 보기 가능합니다.</p>
-            </div>
-          ` : ''}
+          ${isPaid ? paidOverlayHtml() : ''}
           ${isPaid ? '' : '<button class="btn btn-copy" id="copy-btn">복사</button>'}
         </div>
         ${(p.tags||[]).length ? `<div class="detail-tags">${p.tags.map(t=>`<span class="tag">#${Api.escapeHtml(t.name)}</span>`).join('')}</div>` : ''}

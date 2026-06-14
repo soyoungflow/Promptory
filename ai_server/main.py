@@ -21,6 +21,18 @@ from schemas import (
 app = FastAPI(title='Promptory AI Server', root_path=os.getenv('ROOT_PATH', ''))
 Instrumentator().instrument(app).expose(app)
 
+def _provider_mode() -> str:
+    """mock | huggingface — Django AI_MODE 와 동일 값을 LLM_PROVIDER 로 전달."""
+    raw = os.getenv('LLM_PROVIDER', os.getenv('AI_MODE', 'mock')).strip().lower()
+    if raw in ('real', 'huggingface', 'hf'):
+        return 'huggingface'
+    return 'mock'
+
+
+def _is_mock_mode() -> bool:
+    return _provider_mode() == 'mock'
+
+
 HF_TRANSFORM_SYSTEM = """다음 사용자 프롬프트를 {max_steps}단계 에이전트 워크플로우로 분해해.
 각 단계마다 다음 5가지를 결정해:
 
@@ -164,6 +176,9 @@ def _build_transform_response(data: dict, steps: list[StepSpec]) -> TransformRes
 
 @app.get('/health', response_model=HealthResponse)
 def health():
+    if _is_mock_mode():
+        return HealthResponse(status='ok', model_loaded=True, provider='mock')
+
     from models.llm import is_model_loaded  # noqa: WPS433
 
     loaded = is_model_loaded()
@@ -176,6 +191,11 @@ def health():
 
 @app.post('/transform', response_model=TransformResponse)
 def transform(req: TransformRequest):
+    if _is_mock_mode():
+        from mock import mock_transform  # noqa: WPS433
+
+        return mock_transform(req.prompt_text)
+
     from models.llm import generate  # noqa: WPS433
 
     system = HF_TRANSFORM_SYSTEM.format(
@@ -196,6 +216,11 @@ def transform(req: TransformRequest):
 
 @app.post('/embed', response_model=EmbedResponse)
 def embed(req: EmbedRequest):
+    if _is_mock_mode():
+        from mock import mock_embed  # noqa: WPS433
+
+        return mock_embed(req.text)
+
     from models.embedding import embed as do_embed  # noqa: WPS433
 
     vector = do_embed(req.text)

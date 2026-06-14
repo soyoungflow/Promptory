@@ -30,6 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
     mcp_package: 'MCP 패키지',
   };
 
+  const PATTERN_LABELS = {
+    Sequential: 'Sequential',
+    ReAct: 'ReAct',
+    Reflection: 'Reflection',
+    MultiAgent: 'Multi-agent',
+  };
+
   function renderCard(p) {
     const freeTag = p.is_free
       ? `<span class="tag tag-free">무료</span>`
@@ -167,38 +174,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderTransforms(items, errorMsg) {
+  function renderDesignCard(row) {
+    const steps = (row.decomposed_steps || []).length;
+    const href = row.recipe_id
+      ? `/prompts/${row.recipe_id}/`
+      : (row.design_id ? `/blueprints/${row.design_id}/` : `/prompts/${row.prompt_id}/`);
+    const pattern = row.overall_pattern || 'Sequential';
+    const patternLabel = PATTERN_LABELS[pattern] || pattern;
+    const modeTag = row.ai_mode === 'real'
+      ? '<span class="tag tag-type tag-sm">real</span>'
+      : '<span class="tag tag-type tag-sm">mock</span>';
+    const publishedTag = row.recipe_id
+      ? '<span class="tag tag-free tag-sm">마켓 등록됨</span>'
+      : '';
+    const desc = row.context_strategy_summary
+      || row.quality_strategy_summary
+      || row.harness_strategy_summary
+      || `${steps}단계 자동화 설계서`;
+
+    return `
+      <a class="prompt-card" href="${href}">
+        <div class="card-header">
+          <span class="tag tag-agent tag-sm">설계서</span>
+          <span class="tag tag-pattern tag-sm">${Api.escapeHtml(patternLabel)}</span>
+          ${modeTag}
+          ${publishedTag}
+        </div>
+        <h3 class="card-title">${Api.escapeHtml(row.prompt_title || '제목 없음')}</h3>
+        <p class="card-desc">${Api.escapeHtml(desc)}</p>
+        <div class="card-footer">
+          <span class="card-author">${Api.escapeHtml(formatDt(row.created_at))}</span>
+          <span class="card-stats">${steps}단계 · 신뢰도 ${Math.round((row.confidence_score || 0) * 100)}%</span>
+        </div>
+      </a>`;
+  }
+
+  function renderDesignGrid(grid, items, errorMsg, emptyHtml) {
     if (errorMsg) {
-      transformsList.innerHTML = `<div class="error-state">${Api.escapeHtml(errorMsg)}</div>`;
+      grid.innerHTML = `<div class="error-state">${Api.escapeHtml(errorMsg)}</div>`;
       return;
     }
     if (!items?.length) {
-      transformsList.innerHTML = `
-        <div class="empty-state">
-          <p>아직 만든 에이전트 설계서가 없어요.</p>
-          <p>실현하고 싶은 자동화 <strong>아이디어를 한 줄</strong> 적으면 AI가 에이전트 설계서를 만들어 드립니다.</p>
-          <p style="margin-top:12px;">
-            <a href="/blueprints/new/" class="btn btn-primary">설계서 만들기</a>
-            <a href="/prompts/?prompt_type=agent_recipe" class="btn btn-secondary">설계서 둘러보기</a>
-          </p>
-        </div>`;
+      grid.innerHTML = emptyHtml;
       return;
     }
-    transformsList.innerHTML = items.map(row => {
-      const steps = (row.decomposed_steps || []).length;
-      const href = row.recipe_id
-        ? `/prompts/${row.recipe_id}/`
-        : (row.design_id ? `/blueprints/${row.design_id}/` : `/prompts/${row.prompt_id}/`);
-      const publishedTag = row.recipe_id
-        ? '<span class="tag tag-item" style="font-size:11px;">마켓 등록됨</span> '
-        : '';
-      return `
-      <article class="library-transform-row">
-        <a href="${href}" class="library-comment-prompt">${publishedTag}${Api.escapeHtml(row.prompt_title)}</a>
-        <p class="text-muted">${steps}단계 · ${Api.escapeHtml(row.overall_pattern || 'Sequential')} · 신뢰도 ${Math.round((row.confidence_score || 0) * 100)}% · ${Api.escapeHtml(row.model_used || '')}</p>
-        <p class="text-muted">${Api.escapeHtml(formatDt(row.created_at))}</p>
-      </article>`;
-    }).join('');
+    grid.innerHTML = items.map(renderDesignCard).join('');
+  }
+
+  function renderTransforms(items, errorMsg) {
+    const emptyHtml = `
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <p>아직 만든 에이전트 설계서가 없어요.</p>
+        <p>실현하고 싶은 자동화 <strong>아이디어를 한 줄</strong> 적으면 AI가 에이전트 설계서를 만들어 드립니다.</p>
+        <p style="margin-top:12px;">
+          <a href="/blueprints/new/" class="btn btn-primary">설계서 만들기</a>
+          <a href="/prompts/?prompt_type=agent_recipe" class="btn btn-secondary">설계서 둘러보기</a>
+        </p>
+      </div>`;
+
+    renderDesignGrid(transformsList, items, errorMsg, emptyHtml);
   }
 
   async function load() {
