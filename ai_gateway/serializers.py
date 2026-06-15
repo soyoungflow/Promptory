@@ -54,12 +54,13 @@ class BlueprintPublishRecipeSerializer(serializers.Serializer):
 
 class BlueprintDesignSerializer(serializers.ModelSerializer):
     transformation = AgentTransformationSerializer(read_only=True)
+    source_prompt_id = serializers.IntegerField(source='source_prompt_id', read_only=True)
 
     class Meta:
         model = BlueprintDesign
         fields = (
             'id', 'title', 'brief', 'extra_context', 'status',
-            'transformation', 'recipe', 'created_at', 'updated_at',
+            'source_prompt_id', 'transformation', 'recipe', 'created_at', 'updated_at',
         )
         read_only_fields = fields
 

@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const publishError = document.getElementById('publish-error');
   const publishSuccess = document.getElementById('publish-success');
 
-  let taskSocket = null;
   let pollTimer = null;
+  let transformEnqueueInFlight = false;
 
   const I18N = {
     previous_output: {
@@ -177,24 +177,26 @@ document.addEventListener('DOMContentLoaded', () => {
     pageError.textContent = msg;
   }
 
-  function connectTaskWebSocket(taskId) {
-    if (!Auth.isLoggedIn()) return;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const token = encodeURIComponent(Auth.getAccess() || '');
-    const url = `${protocol}//${window.location.host}/ws/tasks/?token=${token}`;
+  async function enqueueBlueprintTransform(design) {
+    const promptId = design?.source_prompt_id;
+    const designId = design?.id;
+    if (!promptId || !designId || transformEnqueueInFlight) return false;
+    if (design.status === 'success') return true;
+
+    transformEnqueueInFlight = true;
     try {
-      taskSocket = new WebSocket(url);
-      taskSocket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.task_id !== taskId) return;
-        if (msg.status === 'SUCCESS' || msg.status === 'FAIL') {
-          onTaskFinished(msg);
-        }
-      };
-      const hint = document.getElementById('blueprint-ws-hint');
-      if (hint) hint.textContent = '실시간 알림 연결됨';
+      const { res, data } = await Api.post(`/prompts/${promptId}/transform/`, {
+        blueprint_design_id: designId,
+      });
+      if (!res.ok) {
+        console.warn('transform enqueue failed', data);
+        return false;
+      }
+      return true;
     } catch {
-      /* polling fallback */
+      return false;
+    } finally {
+      transformEnqueueInFlight = false;
     }
   }
 
@@ -219,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (data.status === 'processing' || data.status === 'pending') {
         wizard.style.display = 'none';
         processing.style.display = '';
+        await enqueueBlueprintTransform(data);
         pollDesignUntilReady(id);
       } else if (data.status === 'fail') {
         showPageError('설계 생성에 실패했습니다. 새로 시도해 주세요.');
@@ -263,54 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1500);
   }
 
-  async function onTaskFinished(taskPayload) {
-    stopPolling();
-    if (taskSocket) {
-      taskSocket.close();
-      taskSocket = null;
-    }
-    if (taskPayload.status === 'FAIL') {
-      showPageError(taskPayload.error_message || '설계 생성에 실패했습니다.');
-      wizard.style.display = '';
-      return;
-    }
-    if (currentDesignId) {
-      await loadDesign(currentDesignId);
-    }
-  }
-
-  function pollTaskStatus(taskId) {
-    if (!taskId) return;
-    const started = Date.now();
-    let notFoundStreak = 0;
-    stopPolling();
-    pollTimer = setInterval(async () => {
-      elapsedEl.textContent = Math.floor((Date.now() - started) / 1000);
-      try {
-        const { res, data } = await Api.get(`/tasks/${taskId}/status/`);
-        if (res.status === 404) {
-          notFoundStreak += 1;
-          if (notFoundStreak >= 3 && currentDesignId) {
-            stopPolling();
-            pollDesignUntilReady(currentDesignId);
-          }
-          return;
-        }
-        if (!res.ok) return;
-        notFoundStreak = 0;
-        if (data.status === 'SUCCESS' || data.status === 'FAIL') {
-          onTaskFinished({
-            task_id: taskId,
-            status: data.status,
-            error_message: data.error_message,
-          });
-        }
-      } catch {
-        /* retry */
-      }
-    }, 1000);
-  }
-
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!requireLogin()) return;
@@ -346,21 +301,14 @@ document.addEventListener('DOMContentLoaded', () => {
         history.replaceState(null, '', `/blueprints/${data.id}/`);
       }
 
-      const transformRes = await Api.post(`/prompts/${data.prompt_id}/transform/`, {
-        blueprint_design_id: data.id,
+      const transformOk = await enqueueBlueprintTransform({
+        id: data.id,
+        source_prompt_id: data.prompt_id,
+        status: 'pending',
       });
-      if (!transformRes.res.ok) {
+      if (!transformOk) {
         formError.style.display = '';
-        formError.textContent =
-          transformRes.data?.detail || 'AI 변환 요청에 실패했습니다.';
-        submitBtn.disabled = false;
-        return;
-      }
-
-      const taskId = transformRes.data?.task_id;
-      if (!taskId && !currentDesignId) {
-        formError.style.display = '';
-        formError.textContent = '변환 작업 ID를 받지 못했습니다. 잠시 후 다시 시도해 주세요.';
+        formError.textContent = 'AI 변환 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.';
         submitBtn.disabled = false;
         return;
       }
@@ -368,11 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
       wizard.style.display = 'none';
       processing.style.display = '';
       elapsedEl.textContent = '0';
-
-      if (taskId) connectTaskWebSocket(taskId);
-      // 설계서 상세 API가 Task 결과와 동기화되므로 primary 폴링으로 사용
-      if (currentDesignId) pollDesignUntilReady(currentDesignId);
-      else if (taskId) pollTaskStatus(taskId);
+      pollDesignUntilReady(currentDesignId);
     } catch {
       formError.style.display = '';
       formError.textContent = '서버 오류가 발생했습니다.';
