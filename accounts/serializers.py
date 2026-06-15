@@ -1,8 +1,30 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+
+from .auth_messages import friendly_auth_detail
 
 User = get_user_model()
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    default_error_messages = {
+        'no_active_account': friendly_auth_detail('no_active_account', code='no_active_account'),
+    }
+
+
+class CustomTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except TokenError as exc:
+            detail = getattr(exc, 'detail', None) or str(exc)
+            code = getattr(exc, 'default_code', None)
+            raise serializers.ValidationError({
+                'detail': friendly_auth_detail(detail, code=code),
+            }) from exc
 
 
 class RegisterSerializer(serializers.ModelSerializer):

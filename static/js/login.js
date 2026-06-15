@@ -7,6 +7,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const errBox  = document.getElementById('login-error');
   const btn     = document.getElementById('login-btn');
 
+  const pendingError = sessionStorage.getItem(AuthErrors.PENDING_KEY);
+  if (pendingError && errBox) {
+    errBox.textContent = pendingError;
+    errBox.style.display = 'block';
+    sessionStorage.removeItem(AuthErrors.PENDING_KEY);
+  }
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearErrors();
@@ -23,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const { res, data } = await Api.post('/accounts/login/', { email, password });
 
       if (!res.ok) {
-        errBox.textContent = data.detail || '이메일 또는 비밀번호를 확인하세요.';
+        errBox.textContent = AuthErrors.normalize(data.detail);
         errBox.style.display = 'block';
         return;
       }

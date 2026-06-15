@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from ai_gateway.models import AgentTransformation, BlueprintDesign
 from ai_gateway.serializers import MyTransformationSerializer
@@ -12,9 +13,24 @@ from prompts.models import Prompt
 from prompts.serializers import PromptListSerializer
 from tasks.models import Task
 
-from .serializers import RegisterSerializer, UserProfileSerializer
+from .serializers import (
+    CustomTokenObtainPairSerializer,
+    CustomTokenRefreshSerializer,
+    RegisterSerializer,
+    UserProfileSerializer,
+)
+
+from .auth_messages import friendly_auth_detail
 
 User = get_user_model()
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    serializer_class = CustomTokenRefreshSerializer
 
 
 class RegisterView(APIView):
@@ -45,7 +61,10 @@ class LogoutView(APIView):
             token.blacklist()
             return Response({'detail': '로그아웃 되었습니다.'}, status=status.HTTP_200_OK)
         except Exception:
-            return Response({'detail': '유효하지 않은 토큰입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': friendly_auth_detail('Token is invalid or expired')},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class MyPromptListView(APIView):

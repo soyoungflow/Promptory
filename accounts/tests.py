@@ -60,6 +60,23 @@ class AccountApiTests(APITestCase):
         response = self.client.get('/api/accounts/me/prompts/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_login_failure_returns_friendly_korean_message(self):
+        User.objects.create_user(
+            email='user@example.com',
+            username='tester',
+            password='StrongPass123!',
+        )
+        response = self.client.post('/api/accounts/login/', {
+            'email': 'user@example.com',
+            'password': 'WrongPassword!',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(
+            response.data['detail'],
+            '이메일 또는 비밀번호가 올바르지 않습니다.',
+        )
+
 
 class JwtOnlyTemplateTests(TestCase):
     def test_protected_form_pages_render_without_django_session(self):

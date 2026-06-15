@@ -370,3 +370,24 @@ class BlueprintDesignApiTests(APITestCase):
         self.assertEqual(len(recipe.workflow_steps), 2)
         self.design.refresh_from_db()
         self.assertEqual(self.design.recipe_id, recipe.id)
+
+    def test_delete_own_blueprint_design(self):
+        self.client.force_authenticate(user=self.user)
+        design_id = self.design.id
+        response = self.client.delete(f'/api/blueprints/design/{design_id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(BlueprintDesign.objects.filter(pk=design_id).exists())
+
+    def test_delete_blueprint_also_soft_deletes_published_recipe(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.post(
+            f'/api/blueprints/design/{self.design.id}/publish-recipe/',
+            {'recipe_category_name': '마케팅'},
+            format='json',
+        )
+        self.design.refresh_from_db()
+        recipe_id = self.design.recipe_id
+        response = self.client.delete(f'/api/blueprints/design/{self.design.id}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        recipe = Prompt.all_objects.get(pk=recipe_id)
+        self.assertTrue(recipe.is_deleted)

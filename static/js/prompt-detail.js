@@ -198,7 +198,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // 프롬프트 상세 로딩
   async function loadPrompt() {
     try {
-      const { data: p } = await Api.get(`/prompts/${promptId}/`);
+      const { res, data: p } = await Api.get(`/prompts/${promptId}/`);
+      if (!res.ok) {
+        const msg = typeof p?.detail === 'string'
+          ? p.detail
+          : '프롬프트를 불러오지 못했습니다.';
+        detailEl.innerHTML = `
+          <div class="error-state">${Api.escapeHtml(msg)}</div>
+          <p class="auth-prompt" style="margin-top:12px;">
+            설계서 만들기 항목은 <a href="/library/">보관함 → 내 에이전트 설계서</a>에서 확인·삭제할 수 있습니다.
+          </p>`;
+        return;
+      }
 
       const isAuthor = String(Auth.getUserId()) === String(p.user_id);
       const editUrl  = `/prompts/${promptId}/edit/`;
@@ -216,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const workflowHtml = isRecipe && (p.workflow_steps || []).length
         ? `
           <div class="recipe-workflow-section prompt-content-box ${isPaid ? 'is-paid-preview' : ''}">
-            <h3 class="section-title">자동화 단계 (5-Layer Blueprint)</h3>
+            <h3 class="section-title">자동화 단계 (워크플로)</h3>
             ${patternLabel ? `<p class="recipe-pattern"><span class="tag tag-agent">패턴: ${Api.escapeHtml(patternLabel)}</span></p>` : ''}
             <div class="${isPaid ? 'paid-preview-body' : ''}">
               ${renderWorkflowSteps(p.workflow_steps, isPaid)}
@@ -403,9 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 프롬프트 Soft Delete
   async function deletePrompt() {
-    if (!confirm('프롬프트를 삭제하시겠습니까?')) return;
+    const label = document.querySelector('.detail-meta .tag-agent')
+      ? '에이전트 설계서'
+      : '프롬프트';
+    if (!confirm(`${label}를 삭제(숨김)하시겠습니까?`)) return;
     const { res } = await Api.delete(`/prompts/${promptId}/`);
-    if (res.ok) window.location.href = '/';
+    if (res.ok) window.location.href = '/library/';
   }
 
   async function loadSimilarRecipes() {

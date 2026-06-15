@@ -189,6 +189,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--border-hover); b
   margin: 0;
   line-height: 1.5;
 }
+.library-design-card { display: flex; flex-direction: column; gap: 8px; }
+.library-design-card .prompt-card { flex: 1; }
+.library-design-actions { display: flex; justify-content: flex-end; padding: 0 2px 4px; }
+.blueprint-actions { margin-top: 12px; }
 .filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 18px; }
 .search-wrap { display: flex; margin-bottom: 10px; }
 .search-input { flex: 1; border-radius: var(--radius) 0 0 var(--radius); border-right: none; }

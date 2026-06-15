@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const prefillBtn = document.getElementById('prefill-recipe-btn');
   const publishError = document.getElementById('publish-error');
   const publishSuccess = document.getElementById('publish-success');
+  const blueprintActions = document.getElementById('blueprint-actions');
+  const deleteBtn = document.getElementById('blueprint-delete-btn');
 
   let pollTimer = null;
   let transformEnqueueInFlight = false;
@@ -209,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       currentDesignId = data.id;
+      blueprintActions.style.display = '';
       if (data.status === 'success' && data.transformation) {
         renderTransformation(data.transformation);
         if (data.recipe) {
@@ -354,6 +357,28 @@ document.addEventListener('DOMContentLoaded', () => {
       publishError.style.display = '';
       publishError.textContent = '등록 폼으로 데이터를 옮기지 못했습니다. 잠시 후 다시 시도해 주세요.';
       prefillBtn.disabled = false;
+    }
+  });
+
+  deleteBtn?.addEventListener('click', async () => {
+    if (!currentDesignId || !requireLogin()) return;
+    const hasRecipe = publishSuccess.style.display !== 'none';
+    const msg = hasRecipe
+      ? '이 설계서와 마켓에 등록된 에이전트 설계서를 모두 삭제할까요?'
+      : '이 설계서를 삭제할까요?';
+    if (!window.confirm(msg)) return;
+    deleteBtn.disabled = true;
+    try {
+      const { res, data } = await Api.delete(`/blueprints/design/${currentDesignId}/`);
+      if (!res.ok) {
+        showPageError(data?.detail || '설계서 삭제에 실패했습니다.');
+        deleteBtn.disabled = false;
+        return;
+      }
+      window.location.href = '/library/';
+    } catch {
+      showPageError('서버 오류가 발생했습니다.');
+      deleteBtn.disabled = false;
     }
   });
 

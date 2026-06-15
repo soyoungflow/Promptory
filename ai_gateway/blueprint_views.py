@@ -73,7 +73,7 @@ class BlueprintDesignListCreateView(APIView):
 
 
 class BlueprintDesignDetailView(APIView):
-    """GET /api/blueprints/design/<id>/"""
+    """GET/DELETE /api/blueprints/design/<id>/"""
 
     permission_classes = [IsAuthenticated]
 
@@ -85,6 +85,21 @@ class BlueprintDesignDetailView(APIView):
         )
         design = sync_design_from_task(design)
         return Response(BlueprintDesignSerializer(design).data)
+
+    def delete(self, request, pk):
+        design = get_object_or_404(
+            BlueprintDesign.objects.select_related('recipe'),
+            pk=pk,
+            user=request.user,
+        )
+        recipe_id = design.recipe_id
+        if design.recipe and not design.recipe.is_deleted:
+            design.recipe.soft_delete(user=request.user)
+        design.delete()
+        payload = {'detail': '설계서가 삭제되었습니다.'}
+        if recipe_id:
+            payload['recipe_id'] = recipe_id
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class BlueprintPublishRecipeView(APIView):

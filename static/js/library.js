@@ -138,6 +138,27 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => setTab(btn.dataset.tab));
   });
 
+  transformsList.addEventListener('click', async e => {
+    const btn = e.target.closest('.library-design-delete');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const designId = btn.dataset.designId;
+    if (!designId) return;
+    const msg = btn.dataset.hasRecipe === '1'
+      ? '이 설계서와 마켓에 등록된 에이전트 설계서를 모두 삭제할까요?'
+      : '이 설계서를 삭제할까요?';
+    if (!window.confirm(msg)) return;
+    btn.disabled = true;
+    const { res } = await Api.delete(`/blueprints/design/${designId}/`);
+    if (res.ok) {
+      await load();
+    } else {
+      btn.disabled = false;
+      alert('삭제에 실패했습니다.');
+    }
+  });
+
   commentsList.addEventListener('click', async e => {
     const btn = e.target.closest('.library-comment-delete');
     if (!btn) return;
@@ -191,22 +212,28 @@ document.addEventListener('DOMContentLoaded', () => {
       || row.quality_strategy_summary
       || row.harness_strategy_summary
       || `${steps}단계 자동화 설계서`;
+    const deleteBtn = row.design_id
+      ? `<button type="button" class="btn btn-sm btn-danger library-design-delete" data-design-id="${row.design_id}" data-has-recipe="${row.recipe_id ? '1' : '0'}">삭제</button>`
+      : '';
 
     return `
-      <a class="prompt-card" href="${href}">
-        <div class="card-header">
-          <span class="tag tag-agent tag-sm">설계서</span>
-          <span class="tag tag-pattern tag-sm">${Api.escapeHtml(patternLabel)}</span>
-          ${modeTag}
-          ${publishedTag}
-        </div>
-        <h3 class="card-title">${Api.escapeHtml(row.prompt_title || '제목 없음')}</h3>
-        <p class="card-desc">${Api.escapeHtml(desc)}</p>
-        <div class="card-footer">
-          <span class="card-author">${Api.escapeHtml(formatDt(row.created_at))}</span>
-          <span class="card-stats">${steps}단계 · 신뢰도 ${Math.round((row.confidence_score || 0) * 100)}%</span>
-        </div>
-      </a>`;
+      <article class="library-design-card">
+        <a class="prompt-card" href="${href}">
+          <div class="card-header">
+            <span class="tag tag-agent tag-sm">설계서</span>
+            <span class="tag tag-pattern tag-sm">${Api.escapeHtml(patternLabel)}</span>
+            ${modeTag}
+            ${publishedTag}
+          </div>
+          <h3 class="card-title">${Api.escapeHtml(row.prompt_title || '제목 없음')}</h3>
+          <p class="card-desc">${Api.escapeHtml(desc)}</p>
+          <div class="card-footer">
+            <span class="card-author">${Api.escapeHtml(formatDt(row.created_at))}</span>
+            <span class="card-stats">${steps}단계 · 신뢰도 ${Math.round((row.confidence_score || 0) * 100)}%</span>
+          </div>
+        </a>
+        ${deleteBtn ? `<div class="library-design-actions">${deleteBtn}</div>` : ''}
+      </article>`;
   }
 
   function renderDesignGrid(grid, items, errorMsg, emptyHtml) {

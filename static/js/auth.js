@@ -3,6 +3,57 @@
  * 모든 페이지에서 base.html을 통해 로드됨
  */
 
+const AuthErrors = (() => {
+  const LIBRARY_KO = {
+    '인증 헤더에는 공백으로 구분 된 두 개의 값이 포함되어야 합니다': '인증 정보 형식이 올바르지 않습니다.',
+    '이 토큰은 모든 타입의 토큰에 대해 유효하지 않습니다': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    '토큰에 사용자 식별자가 포함되어 있지 않습니다': '로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요.',
+    '찾을 수 없는 사용자입니다': '계정을 찾을 수 없습니다.',
+    '비활성화된 사용자입니다': '비활성화된 계정입니다.',
+    '사용자의 비밀번호가 바뀌었습니다.': '비밀번호가 변경되어 다시 로그인해야 합니다.',
+    '유효하지 않거나 만료된 토큰입니다': '로그인이 만료되었습니다. 다시 로그인해 주세요.',
+    '지정된 자격 증명에 해당하는 활성화된 사용자를 찾을 수 없습니다': '이메일 또는 비밀번호가 올바르지 않습니다.',
+    '잘못된 토큰 타입입니다': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    '토큰 타입이 주어지지 않았습니다': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    '토큰에 식별자가 주어지지 않았습니다': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    '블랙리스트에 추가된 토큰입니다': '이미 로그아웃된 세션입니다. 다시 로그인해 주세요.',
+  };
+
+  const MSGID = {
+    'Authorization header must contain two space-delimited values': '인증 정보 형식이 올바르지 않습니다.',
+    'Given token not valid for any token type': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    'Token contained no recognizable user identification': '로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요.',
+    'User not found': '계정을 찾을 수 없습니다.',
+    'User is inactive': '비활성화된 계정입니다.',
+    "The user's password has been changed.": '비밀번호가 변경되어 다시 로그인해야 합니다.',
+    'Token is invalid or expired': '로그인이 만료되었습니다. 다시 로그인해 주세요.',
+    'No active account found with the given credentials': '이메일 또는 비밀번호가 올바르지 않습니다.',
+    'Token has wrong type': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    'Token has no type': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    'Token has no id': '로그인 정보가 올바르지 않습니다. 다시 로그인해 주세요.',
+    'Token is blacklisted': '이미 로그아웃된 세션입니다. 다시 로그인해 주세요.',
+  };
+
+  const DEFAULT = '로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+
+  function extractText(raw) {
+    if (!raw) return '';
+    if (typeof raw === 'object' && !Array.isArray(raw)) {
+      return extractText(raw.detail || raw.message || '');
+    }
+    if (Array.isArray(raw)) return extractText(raw[0]);
+    return String(raw).trim();
+  }
+
+  function normalize(raw) {
+    const text = extractText(raw);
+    if (!text) return DEFAULT;
+    return LIBRARY_KO[text] || MSGID[text] || text;
+  }
+
+  return { normalize, PENDING_KEY: 'promptory_auth_error' };
+})();
+
 const Auth = (() => {
   const TOKEN_KEY = 'promptory_access';
   const REFRESH_KEY = 'promptory_refresh';
@@ -67,7 +118,15 @@ const Auth = (() => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh }),
         });
-        if (!res.ok) { this.clear(); return false; }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          sessionStorage.setItem(
+            AuthErrors.PENDING_KEY,
+            AuthErrors.normalize(data.detail),
+          );
+          this.clear();
+          return false;
+        }
         const data = await res.json();
         this.save(data.access, data.refresh || refresh);
         return true;
