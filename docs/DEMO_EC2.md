@@ -56,12 +56,12 @@ docker compose build ai_server && docker compose up -d ai_server celery_worker
 1. 홈 → 프롬프트·레시피 탐색 (3차 유지)
 2. 작성자 계정으로 로그인
 3. 상단 **설계서 만들기** (`/blueprints/new/`) — 자동화 요청·추가 맥락 입력
-4. **변환 시작** → task_id 반환
-5. PENDING → PROCESSING → SUCCESS (폴링 또는 WebSocket)
-6. 4단계 에이전트 설계 결과 + confidence
+4. **변환 시작** → `POST /api/prompts/{id}/transform/` → `task_id`·`status_url` 반환
+5. DevTools: **`GET /api/tasks/{task_id}/status/`** 폴링 → PENDING → PROCESSING → SUCCESS
+6. SUCCESS 후 **`GET /api/blueprints/design/{id}/`** 로 4단계 설계 결과 + confidence 표시
 7. (선택) **레시피로 등록** — 마켓 초안 공개
-8. 보관함 → **내 변환** 탭
-9. DevTools: `GET /api/tasks/{id}/status/`
+8. 보관함 → **내 에이전트 설계서** 탭
+9. (4~6과 동일) Network 탭에서 `transform` → `tasks/.../status/` → `blueprints/design/` 순서 확인
 10. `http://<EC2_HOST>/ai/docs` → `/transform` mock 호출
 11. `http://<EC2_HOST>/prometheus/` targets UP, Grafana 대시보드
 12. Admin → Task / AgentTransformation / BlueprintDesign 행 확인

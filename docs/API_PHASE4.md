@@ -110,4 +110,4 @@ FastAPI 스키마는 배포 환경 `http://<HOST>/ai/docs` (Swagger).
 ws://<HOST>/ws/tasks/?token=<access_token>
 ```
 
-Task 상태 변경 시 JSON push. 실패 시 `blueprint-design.js`가 `GET /api/tasks/{id}/status/` 폴링.
+Task 상태 변경 시 WebSocket push 가능. **`blueprint-design.js`는 `GET /api/tasks/{task_id}/status/`를 폴링**하고, SUCCESS 시 `GET /api/blueprints/design/{id}/`로 최종 결과를 표시합니다.

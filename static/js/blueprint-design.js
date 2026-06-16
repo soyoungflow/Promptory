@@ -21,9 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const publishSuccess = document.getElementById('publish-success');
   const blueprintActions = document.getElementById('blueprint-actions');
   const deleteBtn = document.getElementById('blueprint-delete-btn');
+  const wsHint = document.getElementById('blueprint-ws-hint');
 
   let pollTimer = null;
   let transformEnqueueInFlight = false;
+
+  const TASK_STORAGE_PREFIX = 'promptory_blueprint_task_';
 
   const I18N = {
     previous_output: {
@@ -179,11 +182,51 @@ document.addEventListener('DOMContentLoaded', () => {
     pageError.textContent = msg;
   }
 
+  function saveTaskForDesign(designId, taskId) {
+    try {
+      sessionStorage.setItem(`${TASK_STORAGE_PREFIX}${designId}`, taskId);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function loadTaskForDesign(designId) {
+    try {
+      return sessionStorage.getItem(`${TASK_STORAGE_PREFIX}${designId}`);
+    } catch {
+      return null;
+    }
+  }
+
+  function clearTaskForDesign(designId) {
+    try {
+      sessionStorage.removeItem(`${TASK_STORAGE_PREFIX}${designId}`);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function fetchDesignResult(designId) {
+    const { res, data } = await Api.get(`/blueprints/design/${designId}/`);
+    if (!res.ok || data.status !== 'success' || !data.transformation) {
+      showPageError(data?.detail || '설계 결과를 불러오지 못했습니다.');
+      wizard.style.display = '';
+      return false;
+    }
+    clearTaskForDesign(designId);
+    renderTransformation(data.transformation);
+    return true;
+  }
+
   async function enqueueBlueprintTransform(design) {
     const promptId = design?.source_prompt_id;
     const designId = design?.id;
-    if (!promptId || !designId || transformEnqueueInFlight) return false;
-    if (design.status === 'success') return true;
+    if (!promptId || !designId || transformEnqueueInFlight) {
+      return { ok: false };
+    }
+    if (design.status === 'success') {
+      return { ok: true, taskId: null };
+    }
 
     transformEnqueueInFlight = true;
     try {
@@ -192,11 +235,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (!res.ok) {
         console.warn('transform enqueue failed', data);
-        return false;
+        return { ok: false, detail: data?.detail };
       }
-      return true;
+      const taskId = data.task_id;
+      if (taskId) saveTaskForDesign(designId, taskId);
+      return { ok: true, taskId, statusUrl: data.status_url };
     } catch {
-      return false;
+      return { ok: false };
     } finally {
       transformEnqueueInFlight = false;
     }
@@ -222,10 +267,17 @@ document.addEventListener('DOMContentLoaded', () => {
           prefillBtn.disabled = true;
         }
       } else if (data.status === 'processing' || data.status === 'pending') {
-        wizard.style.display = 'none';
-        processing.style.display = '';
-        await enqueueBlueprintTransform(data);
-        pollDesignUntilReady(id);
+        let taskId = loadTaskForDesign(id);
+        if (!taskId) {
+          const enq = await enqueueBlueprintTransform(data);
+          if (!enq.ok) {
+            showPageError(enq.detail || 'AI 변환 요청에 실패했습니다.');
+            wizard.style.display = '';
+            return;
+          }
+          taskId = enq.taskId;
+        }
+        startTaskPolling(id, taskId);
       } else if (data.status === 'fail') {
         showPageError('설계 생성에 실패했습니다. 새로 시도해 주세요.');
         wizard.style.display = '';
@@ -242,21 +294,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function pollDesignUntilReady(id) {
+  function startTaskPolling(designId, taskId) {
+    if (!taskId) {
+      showPageError('변환 작업 ID를 찾을 수 없습니다. 다시 시도해 주세요.');
+      wizard.style.display = '';
+      return;
+    }
+    wizard.style.display = 'none';
+    processing.style.display = '';
+    elapsedEl.textContent = '0';
+    if (wsHint) {
+      wsHint.textContent = `GET /api/tasks/${taskId}/status/ 폴링 중…`;
+    }
+    pollTaskUntilReady(designId, taskId);
+  }
+
+  async function pollTaskUntilReady(designId, taskId) {
     const started = Date.now();
     const maxWait = 300000;
     stopPolling();
     pollTimer = setInterval(async () => {
       elapsedEl.textContent = Math.floor((Date.now() - started) / 1000);
       try {
-        const { res, data } = await Api.get(`/blueprints/design/${id}/`);
+        const { res, data } = await Api.get(`/tasks/${taskId}/status/`);
         if (!res.ok) return;
-        if (data.status === 'success' && data.transformation) {
+
+        const taskStatus = data.status;
+        if (wsHint) {
+          wsHint.textContent = `Task ${taskStatus} · GET /api/tasks/${taskId}/status/`;
+        }
+
+        if (taskStatus === 'SUCCESS') {
           stopPolling();
-          renderTransformation(data.transformation);
-        } else if (data.status === 'fail') {
+          await fetchDesignResult(designId);
+        } else if (taskStatus === 'FAIL') {
           stopPolling();
-          showPageError('설계 생성에 실패했습니다.');
+          clearTaskForDesign(designId);
+          showPageError(data.error_message || '설계 생성에 실패했습니다.');
           wizard.style.display = '';
         }
       } catch {
@@ -304,22 +378,19 @@ document.addEventListener('DOMContentLoaded', () => {
         history.replaceState(null, '', `/blueprints/${data.id}/`);
       }
 
-      const transformOk = await enqueueBlueprintTransform({
+      const enq = await enqueueBlueprintTransform({
         id: data.id,
         source_prompt_id: data.prompt_id,
         status: 'pending',
       });
-      if (!transformOk) {
+      if (!enq.ok) {
         formError.style.display = '';
-        formError.textContent = 'AI 변환 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+        formError.textContent = enq.detail || 'AI 변환 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.';
         submitBtn.disabled = false;
         return;
       }
 
-      wizard.style.display = 'none';
-      processing.style.display = '';
-      elapsedEl.textContent = '0';
-      pollDesignUntilReady(currentDesignId);
+      startTaskPolling(currentDesignId, enq.taskId);
     } catch {
       formError.style.display = '';
       formError.textContent = '서버 오류가 발생했습니다.';
