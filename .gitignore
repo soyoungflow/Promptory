@@ -26,3 +26,6 @@ staticfiles/
 .vscode/
 .idea/
 *.swp
+
+# 로컬·작업용 문서 (배포 불필요, submission/ 에 제출본 유지)
+/docs/
