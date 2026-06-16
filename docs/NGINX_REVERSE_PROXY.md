@@ -79,7 +79,7 @@ curl -fsS http://127.0.0.1/
 curl -fsS http://127.0.0.1/ai/health
 curl -fsS http://127.0.0.1/static/css/main.css
 curl -fsS http://127.0.0.1/grafana/api/health
-curl -fsS http://127.0.0.1/prometheus/prometheus/-/healthy
+curl -fsS http://127.0.0.1/prometheus/-/healthy
 ```
 
 CD 워크플로(`.github/workflows/cd.yml`)도 위 **80번 경로**로 smoke check 합니다.
@@ -214,6 +214,7 @@ docker compose up -d --build
 | `400 DisallowedHost` | `ALLOWED_HOSTS`에 IP 없음 | `.env` + compose `${ALLOWED_HOSTS}` 확인 후 `web` 재생성 |
 | `/ai/health` 404 | prefix 전달 오류 | `location ~ ^/ai/?(.*)$` 블록 확인 |
 | Grafana `ERR_TOO_MANY_REDIRECTS` | nginx가 `/grafana/` prefix를 제거해 Grafana가 자기 자신으로 301 반복 | `location /grafana/`에서 prefix 유지(`proxy_pass http://grafana:3000;`) 후 `nginx` 재기동 |
+| Prometheus `ERR_TOO_MANY_REDIRECTS` | nginx가 `/prometheus/` prefix를 제거해 Prometheus가 `/prometheus`로 302 반복 | `location /prometheus/`에서 prefix 유지 후 `nginx` 재기동 |
 | Grafana 빈 화면·CSS 깨짐 | `GF_SERVER_ROOT_URL` 불일치 | `PUBLIC_BASE_URL`을 실제 접속 URL과 맞춤 |
 | WebSocket 실패 | Upgrade 미전달 | `/ws/` location에 `proxy_http_version 1.1` + Upgrade 헤더 |
 

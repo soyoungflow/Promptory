@@ -143,9 +143,9 @@ curl -s http://localhost/   # nginx 경유
 
 **확인:**
 ```bash
-curl -fsS http://127.0.0.1/prometheus/prometheus/api/v1/targets | grep -E 'celery|django|fastapi'
+curl -fsS http://127.0.0.1/prometheus/api/v1/targets | grep -E 'celery|django|fastapi'
 docker compose exec celery_worker python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:9100/metrics').read()[:400])"
-curl -fsS 'http://127.0.0.1/prometheus/prometheus/api/v1/query?query=sum(agent_transformation_total)'
+curl -fsS 'http://127.0.0.1/prometheus/api/v1/query?query=sum(agent_transformation_total)'
 ```
 커스텀 AI 메트릭은 **Celery worker `:9100/metrics`** 에서 수집됩니다. transform 1회 실행 후 Grafana를 새로고침하세요.
 

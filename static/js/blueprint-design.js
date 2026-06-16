@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const wsHint = document.getElementById('blueprint-ws-hint');
 
   let pollTimer = null;
+  let taskWs = null;
+  let taskResolved = false;
   let transformEnqueueInFlight = false;
 
   const TASK_STORAGE_PREFIX = 'promptory_blueprint_task_';
@@ -287,10 +289,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function closeTaskWs() {
+    if (taskWs) {
+      taskWs.close();
+      taskWs = null;
+    }
+  }
+
   function stopPolling() {
     if (pollTimer) {
       clearInterval(pollTimer);
       pollTimer = null;
+    }
+    closeTaskWs();
+  }
+
+  function taskWsUrl() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${location.host}/ws/tasks/`;
+  }
+
+  async function handleTaskTerminal(designId, taskId, taskStatus, errorMessage) {
+    if (taskResolved || (taskStatus !== 'SUCCESS' && taskStatus !== 'FAIL')) return;
+    taskResolved = true;
+    stopPolling();
+    if (taskStatus === 'SUCCESS') {
+      await fetchDesignResult(designId);
+      return;
+    }
+    clearTaskForDesign(designId);
+    showPageError(errorMessage || '설계 생성에 실패했습니다.');
+    wizard.style.display = '';
+  }
+
+  function connectTaskWs(designId, taskId) {
+    closeTaskWs();
+    const token = Auth.getAccess();
+    if (!token) return;
+
+    try {
+      const ws = new WebSocket(`${taskWsUrl()}?token=${encodeURIComponent(token)}`);
+      taskWs = ws;
+
+      ws.onopen = () => {
+        if (wsHint) wsHint.textContent = `WebSocket 연결됨 · task ${taskId.slice(0, 8)}…`;
+      };
+
+      ws.onmessage = (event) => {
+        let payload;
+        try {
+          payload = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+        if (payload.task_id !== taskId) return;
+
+        const taskStatus = payload.status;
+        if (wsHint) {
+          wsHint.textContent = `WebSocket push · Task ${taskStatus}`;
+        }
+        if (taskStatus === 'SUCCESS' || taskStatus === 'FAIL') {
+          handleTaskTerminal(designId, taskId, taskStatus, payload.error_message);
+        }
+      };
+
+      ws.onerror = () => {
+        if (!taskResolved && wsHint) {
+          wsHint.textContent = `WebSocket 실패 · GET /api/tasks/${taskId}/status/ 폴링`;
+        }
+      };
+
+      ws.onclose = () => {
+        if (taskWs === ws) taskWs = null;
+      };
+    } catch {
+      /* 폴링만 사용 */
     }
   }
 
@@ -300,43 +373,42 @@ document.addEventListener('DOMContentLoaded', () => {
       wizard.style.display = '';
       return;
     }
+    taskResolved = false;
     wizard.style.display = 'none';
     processing.style.display = '';
     elapsedEl.textContent = '0';
-    if (wsHint) {
-      wsHint.textContent = `GET /api/tasks/${taskId}/status/ 폴링 중…`;
-    }
+    if (wsHint) wsHint.textContent = 'WebSocket 연결 중…';
+    connectTaskWs(designId, taskId);
     pollTaskUntilReady(designId, taskId);
   }
 
   async function pollTaskUntilReady(designId, taskId) {
     const started = Date.now();
     const maxWait = 300000;
-    stopPolling();
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
     pollTimer = setInterval(async () => {
+      if (taskResolved) return;
       elapsedEl.textContent = Math.floor((Date.now() - started) / 1000);
       try {
         const { res, data } = await Api.get(`/tasks/${taskId}/status/`);
-        if (!res.ok) return;
+        if (!res.ok || taskResolved) return;
 
         const taskStatus = data.status;
-        if (wsHint) {
-          wsHint.textContent = `Task ${taskStatus} · GET /api/tasks/${taskId}/status/`;
+        if (wsHint && !taskWs) {
+          wsHint.textContent = `Task ${taskStatus} · GET /api/tasks/${taskId}/status/ 폴링`;
         }
 
-        if (taskStatus === 'SUCCESS') {
-          stopPolling();
-          await fetchDesignResult(designId);
-        } else if (taskStatus === 'FAIL') {
-          stopPolling();
-          clearTaskForDesign(designId);
-          showPageError(data.error_message || '설계 생성에 실패했습니다.');
-          wizard.style.display = '';
+        if (taskStatus === 'SUCCESS' || taskStatus === 'FAIL') {
+          await handleTaskTerminal(designId, taskId, taskStatus, data.error_message);
         }
       } catch {
         /* retry */
       }
-      if (Date.now() - started > maxWait) {
+      if (!taskResolved && Date.now() - started > maxWait) {
+        taskResolved = true;
         stopPolling();
         showPageError('예상보다 오래 걸리네요. 다시 시도하거나 잠시 후 새로고침해 주세요.');
       }

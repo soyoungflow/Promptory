@@ -182,7 +182,7 @@ jobs:
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
               http://127.0.0.1/grafana/api/health | grep -qE '"database"[[:space:]]*:[[:space:]]*"ok"'
             curl -fsS --retry 5 --retry-connrefused --retry-all-errors --retry-delay 3 \
-              http://127.0.0.1/prometheus/prometheus/-/healthy | grep -q 'Healthy'
+              http://127.0.0.1/prometheus/-/healthy | grep -q 'Healthy'
 
             docker image prune -f || true
 
